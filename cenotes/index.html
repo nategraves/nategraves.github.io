@@ -1,0 +1,122 @@
+<!DOCTYPE>
+<html>
+	<head>
+		<style>
+			canvas {
+				margin: 0 auto;
+			}
+		</style>
+		<script type="text/javascript" src="phaser/build/phaser.js"></script>
+		<script type="text/javascript" src="p2/build/p2.js"></script>
+		<script type="text/javascript">
+			var cursors, game, body, bounds, map, layer;
+			window.onload = function() {
+				game = new Phaser.Game(800, 600, Phaser.CANVAS, 'game', {
+					preload: preload,
+					create: create,
+					render: render
+				});
+
+				function preload() {
+					game.load.image('box', 'box.png');
+					game.load.image("background", "bg.png");
+					game.load.tilemap('map', 'first.csv', null, Phaser.Tilemap.CSV);
+					game.load.image('tiles', 'alltiles.png');
+				}
+
+				function create() {
+					game.stage.backgroundColor = '#C0FFFF';
+				    game.physics.startSystem(Phaser.Physics.P2JS);
+    				game.physics.p2.setBoundsToWorld(true, true, true, true, false);
+    				game.physics.p2.defaultRestitution = 0.8;
+					game.physics.p2.gravity.y = 300;
+
+					water = game.add.tileSprite(0, 200, 1800, 1800, 'background');
+					//swimmer = new Phaser.Sprite(game, 300, 220, 'box');
+					//game.add.sprite(swimmer);
+					swimmer = game.add.sprite(300,220, 'box');
+					swimmer.health = 1000;
+					var outerHealth = Phaser.Rectangle(20, 20, 200, 40);
+					var innerHealth = Phaser.Rectangle(24, 24, 192, 32);
+					bounds = { left: null, right: null, top: null, bottom: null};
+
+					game.add.sprite(swimmer);
+					game.physics.p2.enable(swimmer);
+					game.camera.follow(swimmer);
+
+					map = game.add.tilemap('map', 9, 9, 1800, 900);
+					map.addTilesetImage('tiles');
+					map.setCollisionBetween(0, 40);
+					layer = map.createLayer(0);
+					layer.resizeWorld();
+					game.physics.p2.convertTilemap(map, layer);
+
+					//Make the bounds do something
+					var sim = game.physics.p2;
+					bounds.left = new p2.Body({
+						mass: 0,
+						position: [ sim.pxmi(water.x), sim.pxmi(water.y) ],
+						angle: 1.5707963267948966
+					});
+    				bounds.left.addShape(new p2.Plane());
+					bounds.right = new p2.Body({
+						mass: 0,
+						position: [ sim.pxmi(water.x + water.width), sim.pxmi(water.y) ],
+						angle: -1.5707963267948966
+					});
+					bounds.right.addShape(new p2.Plane());
+					bounds.top = new p2.Body({
+						mass: 0,
+						position: [ sim.pxmi(water.x), sim.pxmi(water.y - (swimmer.height / 2)) ],
+						angle: -3.141592653589793
+					});
+					bounds.top.addShape(new p2.Plane());
+					bounds.bottom = new p2.Body({
+						mass: 0,
+						position: [ sim.pxmi(water.x), sim.pxmi(water.y + water.height) ]
+					});
+					bounds.bottom.addShape(new p2.Plane());
+					sim.world.addBody(bounds.left);
+					sim.world.addBody(bounds.right);
+					sim.world.addBody(bounds.top);
+					sim.world.addBody(bounds.bottom);
+
+					swimmer.body.setZeroDamping();
+					swimmer.body.fixedRotation = true;
+					swimmer.body.data.gravityScale = 0.1;
+
+					cursors = game.input.keyboard.createCursorKeys();
+				}
+
+				function render() {
+					if (cursors.left.isDown)
+					{
+						swimmer.body.moveLeft(20);
+						swimmer.health -= 2;
+					}
+					else if (cursors.right.isDown)
+					{
+						swimmer.body.moveRight(20);
+						swimmer.health -= 2;
+					}
+
+					if (cursors.up.isDown)
+					{
+						swimmer.body.moveUp(30);
+					}
+					else if (cursors.down.isDown)
+					{
+						swimmer.body.moveDown(30);
+						swimmer.health -= 2;
+					}
+				}
+
+				function collisionHandler() {
+					swimmer.body.moveUp(0);
+				}
+			};
+		</script>
+	</head>
+	<body>
+	</body>
+</html>
