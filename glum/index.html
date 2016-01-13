@@ -1,0 +1,62 @@
+<!DOCTYPE>
+<html>
+	<head>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.9.25/paper-full.js" type="text/javascript"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+		<script src="flocking-all.js" type="text/javascript"></script>
+		<script src="myStuff.js"></script>
+		<script type="text/paperscript" canvas="magic">
+			tool.minDistance = 2;
+			tool.maxDistance = 25;
+
+			var path;
+
+			function undo() {
+				console.log('undoing');
+			}
+
+			function onMouseDown(event) {
+				path = new Path();
+				path.fillColor = '#000000';
+
+				path.add(event.point);
+			}
+
+			function onMouseDrag(event) {
+				var step = event.delta * 1.05;
+				step.angle += 75;
+
+				var top = event.middlePoint - step;
+				var bottom = event.middlePoint + step;
+
+				path.add(top);
+				path.insert(0, bottom);
+				path.smooth();
+
+			}
+
+			function onMouseUp(event) {
+				path.add(event.point);
+				path.closed = true;
+				path.smooth();
+			}
+		</script>
+		<style>
+			body {
+				padding: 0;
+				margin: 0;
+			}
+			canvas {
+				background: #F0F0F0;
+				width: 100vw;
+				height: 100vh;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id="magic" resize="true"></canvas>
+		<script>
+			myStuff.play();
+		</script>
+	</body>
+</html>
