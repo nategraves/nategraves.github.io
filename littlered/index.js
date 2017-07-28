@@ -26,13 +26,12 @@
       name: 'main2'
     });
 
-    project.importSVG(logoSVG, {expandShapes: true}, function(logoItem) {
-      logoItem.fillColor = 'black';
+    project.importSVG(logoSVG, function(logoItem) {
       logoItem.bringToFront();
       logoItem.name = 'logo';
       var delta = logoItem.bounds.center - vb.center;
-      /*
       logoItem.translate(delta);
+      /*
       var result = mainPath.subtract(logoItem[1]);
       result.fillColor = 'black';
       result.bringToFront();
