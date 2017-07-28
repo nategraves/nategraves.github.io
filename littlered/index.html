@@ -73,9 +73,9 @@
         var item = project.activeLayer.children[i];
         if (item.name === 'main' || item.name === 'main2') { 
           if (event.count % 3 === 0 && item.name == 'main2') {
-            item.radius += math.randomInt(-50, 50);
-            item.position.x += math.randomInt(-10, 10);
-            item.position.y += math.randomInt(-10, 10);
+            //item.radius += math.randomInt(-50, 50);
+            //item.position.x += math.randomInt(-10, 10);
+            //item.position.y += math.randomInt(-10, 10);
             item.sendToBack();
           } else {
             item.position = view.bounds.center;
