@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Little Red</title>
+  <meta name="description" content="A digital agency in New York City">
+  <meta name="author" content="Little Red">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="../../dist/images/favicon.png">
+
+  <link rel="stylesheet" href="styles.css" type="text/css">
+  <link href='//fonts.googleapis.com/css?family=Raleway:400,300,600' rel='stylesheet' type='text/css'>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/7.0.0/normalize.min.css" rel="stylesheet" type="text/css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css" rel="stylesheet" type="text/css">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/3.14.2/math.min.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.11.4/paper-full.min.js"></script>
+  <script type="text/paperscript" canvas="first">
+    // The amount of circles we want to make:
+    var count = 150;
+    var logoSVG = document.getElementById('logo');
+    var logoItem = null;
+    var vb = view.bounds;
+
+    // Create a symbol, which we will use to place instances of later:
+    var path = new Path.Circle({
+      center: [0, 0],
+      radius: 10,
+      fillColor: 'white'
+    });
+
+    var mainPath2 = new Path.Circle({
+      center: vb.center,
+      radius: vb.height / 4,
+      fillColor: '#fd5139',
+      name: 'main'
+    });
+
+    var mainPath2 = new Path.Circle({
+      center: vb.center,
+      radius: vb.height / 4,
+      fillColor: 'white',
+      opacity: 0.4,
+      name: 'main2'
+    });
+
+    project.importSVG(logoSVG, {expandShapes: true}, function(logoItem) {
+      logoItem.fillColor = 'black';
+      logoItem.bringToFront();
+      logoItem.name = 'logo';
+      var delta = logoItem.bounds.center - vb.center;
+      /*
+      logoItem.translate(delta);
+      var result = mainPath.subtract(logoItem[1]);
+      result.fillColor = 'black';
+      result.bringToFront();
+      result.position = [200,200];
+      result.name = 'logo';
+      */
+    });
+
+    var symbol = new Symbol(path);
+
+    for (var i = 0; i < count; i++) {
+      var center = Point.random() * view.size;
+      var placedSymbol = symbol.place(center);
+      placedSymbol.scale(i / count);
+    }
+
+    function onFrame(event) {
+      for (var i = 0; i < count; i++) {
+        var item = project.activeLayer.children[i];
+        if (item.name === 'main' || item.name === 'main2') { 
+          if (event.count % 3 === 0 && item.name == 'main2') {
+            item.radius += math.randomInt(-50, 50);
+            item.position.x += math.randomInt(-10, 10);
+            item.position.y += math.randomInt(-10, 10);
+            item.sendToBack();
+          } else {
+            item.position = view.bounds.center;
+            item.radius = view.bounds.height / 2;
+          }
+        } else if (item.name === 'result' || item.name == 'logo') {
+          item.position = view.bounds.center;
+          var segments = item.children[1].children[0].children[0].segments;
+          for (var i = 0; i < segments.length; i++) {
+            var segment = segments[i];
+            var sinus = Math.sin(event.time * 3 + i);
+          }
+        } else {
+          item.position.x += item.bounds.width / 20;
+          if (item.bounds.left > view.size.width) {
+            item.position.x = -item.bounds.width;
+          }
+        }
+      }
+}
+  </script>
+</head>
+<body>
+  <div class="logo-container">
+    <svg id="logo" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+      viewBox="0 0 220 367.7" style="enable-background:new 0 0 220 367.7;" xml:space="preserve">
+      <style type="text/css">
+        .st0{fill:#FFFFFF;}
+      </style>
+      <title>littlered-logo</title>
+      <g class="st0">
+        <path d="M209.1,58.5v86.6c-1.1-0.7-2.3-1.3-3.5-1.8c-9.7-4-21.2-1.3-29.4,6.9c-15.3,15.3-16.4,45.4-2.3,59.7
+          c4,3.9,9.3,6.1,14.9,6c12.9,0,23.6-10.4,31.1-19.9c0,0,0-147.5,0-147.7L209.1,58.5z M209,163.3v28c-7.3,10-14.4,13.5-20.3,13.9
+          c-4,0.2-7-2.8-7-2.8c-10.1-10.1-9-33.6,2.2-44.7c6.2-6.2,13.3-6.5,17.8-4.6C205.8,154.9,208.7,158.8,209,163.3z"/>
+        <polygon points="36.8,117 26.2,127.7 26.2,179.2 36.8,168.5 	"/>
+        <polygon points="36.8,84.3 26.2,95 26.2,111.3 36.8,100.7 	"/>
+        <path d="M45,124.5l9-9v39.9c3.4-1.5,6.9-2.5,10.6-3v-47.6l20.3-20.2v68.6c3.9,1.5,7.5,3.6,10.7,6.3V74l7.3-7.3V51.6
+          l-7.3,7.3V25.7L84.9,36.4v33.2L64.7,89.7v-33L54,67.4v33l-9.1,9.1L45,124.5z"/>
+        <path d="M151.1,250.4c-15.8,8.9-29.1,11-39.5,6.2c-16.4-7.4-25.2-22.3-25.2-22.3c12.2-8.6,18.9-23.6,17.6-39.7
+          s-10-24.7-20.7-29c-16.6-6.6-31,8.4-31.7,9l-16,15.8c-5.1,5.1-11.6,4.3-16,2.5c-5.5-2.2-9.2-7.6-9.1-13.6V56.7L0.1,67v112.3
+          c-0.1,10.2,6.1,19.5,15.6,23.3c9.6,4,20.1,2.6,27.5-4.8l15.4-15.4c1.3-1,10.8-11.1,20.8-7.1c7,2.8,13.3,9.4,14.2,20.1
+          C94.7,208.7,89,220,79,226.6c-7.8,5.2-14.5-3.7-14.5-3.7v-28.7l-10.6,11l-0.5,127.4v0.2c-0.3,10.3-4.5,20.1-11.7,27.4l7.4,7.4
+          c9.3-9.3,14.6-21.9,14.8-35.1l0.3-98.6c0.7,0.6,4.3,5.8,13.2,4.3c2.8,5.3,12.1,20.1,29.9,27.8c24.3,10.7,53.3-10,54.1-10.6v-12.8
+          C158.8,244.7,153.8,248.9,151.1,250.4z"/>
+        <path d="M121.1,142.7V0l-10.4,10.5v132.2c0,19.6,18.5,24.4,20,24.7v-11C124.9,154.3,121.1,148.8,121.1,142.7z"/>
+        <path d="M168.8,77.1c-8.8-4.5-19.7-2.3-27.7,5.7c-15,15-17.1,41.4-4.6,56.5c4.2,4.9,10.3,7.8,16.7,8.2
+          c8.8,0.6,18-3.3,27.7-11.5v-14.2c-9.2,9.2-22.3,19-32.7,13.4l32.8-32.7C181.4,92.3,176.7,81.2,168.8,77.1z M171,97.6l-30,30
+          c-5.4-11.1-2.8-27.2,6.7-36.7c6.1-6.1,12.6-6,16.8-3.9S170.7,92.8,171,97.6z"/>
+        <path d="M149.1,175.1c-8.8-4.5-19.7-2.3-27.7,5.7c-15,15-17.1,41.4-4.6,56.5c4.2,4.9,10.3,7.8,16.7,8.2
+          c8.8,0.6,18-3.3,27.7-11.5v-14.2c-9.2,9.2-22.3,19-32.7,13.4l32.8-32.7C161.7,190.3,157,179.2,149.1,175.1z M151.3,195.6l-30,30
+          c-5.4-11.1-2.8-27.2,6.7-36.7c6.1-6.1,12.6-6,16.8-3.9S151,190.8,151.3,195.6z"/>
+      </g>
+    </svg>
+  </div>
+  <div class="home">
+    <canvas id="first" class="column red"></canvas>
+  </div>
+  <div class="home">
+    <canvas id="second" class="column white"></canvas>
+  </div>
+</body>
+</html>
