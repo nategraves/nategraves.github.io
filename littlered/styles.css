@@ -80,6 +80,7 @@ h5 {
 
 .little-logo img {
   height: 52px;
+  opacity: 0.5;
 }
 
 .logo-container {
@@ -134,7 +135,7 @@ h5 {
 
 .red a {
   color: #ffffff;
-  transition: all 0.3s ease;
+  transition: color 0.3s ease;
 }
 
 .red a:hover {

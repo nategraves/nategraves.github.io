@@ -46,8 +46,8 @@ Dot.prototype.update = function() {
 
 Dot.prototype.display = function() {
   if (this.lifespan >  2) {
-    stroke(255, this.lifespan);
-    fill(255, this.lifespan);
+    stroke(240, this.lifespan);
+    fill(240, this.lifespan);
     ellipse(this.position.x, this.position.y, 150, 150);
   }
 }
