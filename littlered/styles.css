@@ -62,14 +62,8 @@ h5 {
 }
 
 .social-links a {
-  color: #fd5139;
   font-size: 1.75em;
   margin: 0 20px;
-  transition: color 0.3s ease;
-}
-
-.social-links a:hover {
-  color: #ebff00;
 }
 
 .nav a {
@@ -136,6 +130,15 @@ h5 {
 .red {
   background-color: #fd5139;
   color: #fff;
+}
+
+.red a {
+  color: #ffffff;
+  transition: all 0.3s ease;
+}
+
+.red a:hover {
+  color: #ebff00;
 }
 
 .red-medium {
