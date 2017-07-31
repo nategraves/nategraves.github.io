@@ -1,3 +1,27 @@
+/*
+fd5139
+fd6e5d
+ffe1dc
+*/
+
+@font-face {
+  font-family: 'Career';
+  src: url('assets/career.eot');
+  src: url('assets/career.woff2') format('woff2'),
+     url('assets/career.woff') format('woff'),
+     url('assets/career.ttf')  format('truetype'),
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  font-weight: bolder;
+  font-family: 'career', serif;
+  font-style: italic;
+}
+
 .home {
   display: flex;
   height: 500px;
@@ -6,8 +30,46 @@
 }
 
 .header {
-  height: 50px;
+  display: flex;
+  height: 70px;
   flex: 1 1 auto;
+}
+
+.header div {
+  flex: 0 1 33%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.header .nav {
+  justify-content: flex-start;
+}
+
+.header .social-links {
+  justify-content: flex-end;
+}
+
+.nav a {
+  color: #fd5139;
+  text-decoration: none;
+  display: inline-block;
+  margin: 0 40px;
+}
+
+.little-logo a {
+  font-size: 1em;
+  line-height: 1em;
+}
+
+.little-logo img {
+  height: 52px;
+}
+
+.social-links a {
+  color: #fd5139;
+  font-size: 1.75em;
+  margin: 0 20px;
 }
 
 .logo-container {
@@ -24,12 +86,53 @@
   width: 100%;
 }
 
+.copy-divider {
+  display: flex;
+}
+
+.copy-divider div {
+  flex: 0 1 33%;
+  padding: 30px 60px;
+}
+
+.copy-divider div h1 {
+  font-size: 2.25em;
+  margin-bottom: 5px;
+}
+
+.copy-divider div p {
+  font-family: sans-serif;
+  font-size: 1.3em;
+  font-weight: lighter;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.color-divider {
+  display: flex;
+}
+
+.color-divider div {
+  height: 300px;
+  flex: 1 1 auto;
+}
+
 .red {
   background-color: #fd5139;
-  color: #fff;  
+  color: #fff;
+}
+
+.red-medium {
+  background-color: #fd6e5d;
+  color: #fff;
+}
+
+.red-light {
+  background-color: #ffe1dc;
+  color: #fd5139;
 }
 
 .white {
   color: #fd5139;
-  background-color: #fff;  
+  background-color: #fff;
 }

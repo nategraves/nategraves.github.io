@@ -9,71 +9,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/png" href="../../dist/images/favicon.png">
 
-  <link rel="stylesheet" href="styles.css" type="text/css">
-  <link href='//fonts.googleapis.com/css?family=Raleway:400,300,600' rel='stylesheet' type='text/css'>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/7.0.0/normalize.min.css" rel="stylesheet" type="text/css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link href='//fonts.googleapis.com/css?family=Raleway:400,300,600' rel='stylesheet' type='text/css'>
+  <link href='assets/stylesheet.css' rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="styles.css" type="text/css">
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.0/d3.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/3.14.2/math.min.js"></script>
   <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.11.4/paper-full.min.js"></script>
-  <script type="text/paperscript" canvas="first">
-    var logoSVG = document.getElementById('logo');
-    var logoItem = null;
-    var vb = view.bounds;
-
-    var path = new Path.Circle({
-      center: [-10, -10],
-      radius: 10,
-      fillColor: 'white'
-    });
-
-    var svgPaths = [];
-    project.importSVG(logoSVG, function(logoItem) {
-      var delta =  vb.center - logoItem.bounds.center;
-      logoItem.translate(delta);
-      for (var i = 1; i < logoItem.children.length; i++) {
-        var child = logoItem.children[i];
-        if (child.children && child.children.length > 0) {
-          for (var j = 0; j < child.children.length; j++) {
-            if (child.children[j].segments && child.children.length > 0) {
-              svgPaths.push(child.children[j].segments);
-            }
-          }
-        } else {
-          if (child.segments) {
-            svgPaths.push(child.segments)
-          }
-        }
-      }
-      logoItem.bringToFront();
-      logoItem.name = 'logo';
-    });
-
-    function onFrame(event) {
-      if (logoItem) {
-        var delta =  vb.center - logoItem.bounds.center;
-        logoItem.translate(delta);
-      }
-      /*
-      if (svgPaths.length) {
-        for (var i = 0; i <= svgPaths.length; i++) {
-          var path = svgPaths[i];
-          if (path && path.length > 0) {
-            for (var p = 0; p < path.length; p++) {
-              var sinus = Math.sin(event.time * 3 + p);
-              var point = path[p].point;
-              point.y = sinus * 10;
-            }
-          }
-        }
-      }
-      */
-    }
-  </script>
+  <script src="index.js" type="text/paperscript"></script>
 </head>
 <body>
   <div class="header">
+    <div class="nav">
+      <a href="#about">About</a>
+      <a href="#about">Hire</a>
+      <a href="#about">Join</a>
+      <a href="#about">Contact</a>
+    </div>
+    <div class="little-logo">
+      <a href="/"><img src="little-logo.png" /></a>
+    </div>
+    <div class="social-links">
+      <a href="https://twitter.com"><i class="fa fa-twitter-square"></i></a>
+      <a href="https://facebook.com"><i class="fa fa-facebook-square"></i></a>
+      <a href="https://instagram.com"><i class="fa fa-twitter-square"></i></a>
+    </div>
   </div>
   <div class="home">
     <div class="logo-container">
@@ -104,8 +68,24 @@
     </div>
     <canvas id="first" class="red section"></canvas>
   </div>
-  <div class="home">
-    <canvas id="second" class="white section"></canvas>
+  <div class="white section copy-divider">
+    <div>
+      <h1>Lust Display Italic</h1>
+      <p>Here's some body copy. The body copy is pretty good at helping to divide things up.</p>
+    </div>
+    <div>
+      <h1>Lust Display Italic</h1>
+      <p>Here's some body copy. The body copy is pretty good at helping to divide things up.</p>
+    </div>
+    <div>
+      <h1>Lust Display Italic</h1>
+      <p>Here's some body copy. The body copy is pretty good at helping to divide things up.</p>
+    </div>
+  </div>
+  <div class="section color-divider">
+    <div class="red"></div>
+    <div class="red-medium"></div>
+    <div class="red-light"></div>
   </div>
 </body>
 </html>

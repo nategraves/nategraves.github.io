@@ -1,0 +1,11 @@
+@font-face {
+  font-family: 'career';
+  src: url('Career-webfont.eot');
+  src: url('Career-webfont.eot?#iefix') format('embedded-opentype'),
+       url('Career-webfont.woff2') format('woff2'),
+       url('Career-webfont.woff') format('woff'),
+       url('Career-webfont.ttf') format('truetype'),
+       url('Career-webfont.svg#careermedium') format('svg');
+  font-weight: normal;
+  font-style: normal;
+}
