@@ -37,6 +37,7 @@ h5 {
   transform: translate(-50%, -50%);
   user-select: none;
   z-index: 1;
+  max-width: 250px;
 }
 
 .header {
