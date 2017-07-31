@@ -22,14 +22,6 @@ h5 {
   font-style: italic;
 }
 
-.home {
-  display: flex;
-  height: 500px;
-  width: 100vw;
-  position: relative;
-  user-select: none;
-}
-
 .big-logo {
   position: absolute;
   top: 50%;
@@ -40,61 +32,13 @@ h5 {
   max-width: 250px;
 }
 
-.header {
+.color-divider {
   display: flex;
-  height: 70px;
+}
+
+.color-divider div {
+  height: 300px;
   flex: 1 1 auto;
-}
-
-.header div {
-  flex: 0 1 33%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.header .nav {
-  justify-content: flex-start;
-}
-
-.header .social-links {
-  justify-content: flex-end;
-}
-
-.social-links a {
-  font-size: 1.75em;
-  margin: 0 20px;
-}
-
-.nav a {
-  color: #fd5139;
-  text-decoration: none;
-  display: inline-block;
-  margin: 0 40px;
-}
-
-.little-logo a {
-  font-size: 1em;
-  line-height: 1em;
-}
-
-.little-logo img {
-  height: 52px;
-  opacity: 0.5;
-}
-
-.logo-container {
-  position: absolute;
-  top: 50%;
-  left: -50%;
-  width: 220px;
-  height: 367px;
-  z-index: 1;
-  transform: translate(-50%, -50%);
-}
-
-.section {
-  width: 100%;
 }
 
 .copy-divider {
@@ -119,27 +63,93 @@ h5 {
   line-height: 1.4;
 }
 
-.color-divider {
+.header {
   display: flex;
+  height: 60px;
+  flex: 1 1 auto;
+  border-bottom: 3px solid #000815;
 }
 
-.color-divider div {
-  height: 300px;
-  flex: 1 1 auto;
+.header div {
+  flex: 0 1 33%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.header .nav {
+  justify-content: flex-start;
+}
+
+.header .nav a {
+  color: #fff;
+  text-decoration: none;
+  display: inline-block;
+  margin: 0 40px;
+  transition: all 0.3s ease;
+}
+
+.header .nav a:hover {
+  color: #ebff00;
+}
+
+.header .social-links {
+  justify-content: flex-end;
+}
+
+.header .social-links a {
+  font-size: 1.75em;
+  margin: 0 20px;
+  color: #fff;
+  transition: all 0.3s ease;
+}
+
+.header .social-links a:hover {
+  color: #ebff00;
+}
+
+.home {
+  display: flex;
+  height: 500px;
+  width: 100vw;
+  position: relative;
+  user-select: none;
+}
+
+.little-logo {
+  position: relative;
+}
+
+.little-logo a {
+  font-size: 1em;
+  line-height: 1em;
+  position: absolute;
+  top: 8.5px;
+  z-index: 1;
+}
+
+.little-logo img {
+  height: 80px;
+  ransition: all 0.3s ease;
+}
+
+.logo-container {
+  position: absolute;
+  top: 50%;
+  left: -50%;
+  width: 220px;
+  height: 367px;
+  z-index: 1;
+  transform: translate(-50%, -50%);
+}
+
+.section {
+  width: 100%;
 }
 
 .red {
   background-color: #fd5139;
   color: #fff;
-}
-
-.red a {
-  color: #ffffff;
-  transition: color 0.3s ease;
-}
-
-.red a:hover {
-  color: #ebff00;
 }
 
 .red-medium {
