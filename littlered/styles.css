@@ -61,6 +61,17 @@ h5 {
   justify-content: flex-end;
 }
 
+.social-links a {
+  color: #fd5139;
+  font-size: 1.75em;
+  margin: 0 20px;
+  transition: color 0.3s ease;
+}
+
+.social-links a:hover {
+  color: #ebff00;
+}
+
 .nav a {
   color: #fd5139;
   text-decoration: none;
@@ -75,12 +86,6 @@ h5 {
 
 .little-logo img {
   height: 52px;
-}
-
-.social-links a {
-  color: #fd5139;
-  font-size: 1.75em;
-  margin: 0 20px;
 }
 
 .logo-container {
