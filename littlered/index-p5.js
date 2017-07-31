@@ -40,7 +40,7 @@ function Dot(x, y) {
 }
 
 Dot.prototype.update = function() {
-  this.lifespan -= 8.0;
+  this.lifespan -= 6.0;
   //console.log(this.lifespan);
 }
 
