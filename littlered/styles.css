@@ -43,7 +43,6 @@ h5 {
 
 .copy-divider {
   display: flex;
-  border-top: 3px solid #000815;
 }
 
 .copy-divider div {
@@ -66,9 +65,8 @@ h5 {
 
 .header {
   display: flex;
-  height: 60px;
+  height: 70px;
   flex: 1 1 auto;
-  border-bottom: 3px solid #000815;
 }
 
 .header div {
@@ -117,20 +115,13 @@ h5 {
   user-select: none;
 }
 
-.little-logo {
-  position: relative;
-}
-
 .little-logo a {
   font-size: 1em;
   line-height: 1em;
-  position: absolute;
-  top: 8.5px;
-  z-index: 1;
 }
 
 .little-logo img {
-  height: 80px;
+  height: 50px;
   ransition: all 0.3s ease;
 }
 
