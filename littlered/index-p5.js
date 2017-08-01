@@ -28,7 +28,12 @@ Fog.prototype.addDot = function(position, radius) {
 
 Fog.prototype.addMovingDots = function(x, y) {
   for (var i = 0; i < 100; i++) {
-    this.movingDots.push(new MovingDot(createVector(mouseX, mouseY)));
+    this.movingDots.push(
+      new MovingDot(
+        createVector(mouseX, mouseY),
+        random(20, 150)
+      )
+    );
   }
 }
 
@@ -36,7 +41,6 @@ Fog.prototype.update = function() {
   clear();
 
   let radius = 20;
-
   /*
   if (this.previousDot) {
     debugger;
@@ -87,7 +91,6 @@ Dot.prototype.display = function() {
 }
 
 function MovingDot(position, radius) {
-
   this.radius = radius;
   const mod = (150 - this.radius) / 150;
   const velX = random(-this.radius / 5, this.radius / 5) * mod;
