@@ -17,10 +17,13 @@ function draw() {
 function Fog()  {
   this.dots = [];
   this.movingDots = [];
+  this.previousDot = null;
 }
 
-Fog.prototype.addDot = function(x, y) {
-  this.dots.push(new Dot(x, y));
+Fog.prototype.addDot = function(position, radius) {
+  const dot = new Dot(position, radius);
+  this.dots.push(dot);
+  this.previousDot = dot;
 }
 
 Fog.prototype.addMovingDots = function(x, y) {
@@ -31,7 +34,20 @@ Fog.prototype.addMovingDots = function(x, y) {
 
 Fog.prototype.update = function() {
   clear();
-  this.addDot(mouseX, mouseY);
+
+  let radius = 20;
+
+  /*
+  if (this.previousDot) {
+    debugger;
+    const deltaX = this.previousDot.position.x - mouseX;
+    const deltaY = this.previousDot.position.x - mouseX;
+    const maxDelta = deltaX > deltaY ? deltaX : deltaY;
+    radius = ((maxDelta  + 1) / 60) * 20;
+  }
+  */
+
+  this.addDot(createVector(mouseX, mouseY), radius);
 
   for (var i = 0; i < this.dots.length; i++) {
     if (this.dots[i].lifespan > 0) {
@@ -52,8 +68,9 @@ Fog.prototype.update = function() {
   }
 }
 
-function Dot(x, y) {
-  this.position = createVector(x, y);
+function Dot(position, radius) {
+  this.position = position;
+  this.radius = radius;
   this.lifespan = 240.0;
 }
 
@@ -69,11 +86,15 @@ Dot.prototype.display = function() {
   }
 }
 
-function MovingDot(position) {
-  this.velocity = createVector(random(-5, 5), random(-5, 5));
+function MovingDot(position, radius) {
+
+  this.radius = radius;
+  const mod = (150 - this.radius) / 150;
+  const velX = random(-this.radius / 5, this.radius / 5) * mod;
+  const velY = random(-this.radius / 5, this.radius / 5) * mod;
+  this.velocity = createVector(velX, velY);
   this.position = position.copy();
   this.lifespan = 240.0;
-  this.radius = random(20, 150);
 }
 
 MovingDot.prototype.run = function() {
