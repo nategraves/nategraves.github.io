@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Little Red</title>
+  <meta name="description" content="A digital agency in New York City">
+  <meta name="author" content="Little Red">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="../../dist/images/favicon.png">
+
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/7.0.0/normalize.min.css" rel="stylesheet" type="text/css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link href='//fonts.googleapis.com/css?family=Raleway:400,300,600' rel='stylesheet' type='text/css'>
+  <link href='assets/stylesheet.css' rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="styles.css" type="text/css">
+</head>
+<body>
+  <div class="header red">
+    <div class="nav">
+      <a href="flock.html">About</a>
+      <a href="#about">Hire</a>
+      <a href="#about">Join</a>
+      <a href="#about">Contact</a>
+    </div>
+    <div class="little-logo">
+      <a href="/littlered"><img src="little-logo.png" /></a>
+    </div>
+    <div class="social-links">
+      <a href="https://twitter.com"><i class="fa fa-twitter"></i></a>
+      <a href="https://facebook.com"><i class="fa fa-facebook"></i></a>
+      <a href="https://instagram.com"><i class="fa fa-instagram"></i></a>
+    </div>
+  </div>
+  <div class="flock">
+    <div id="interactive" class="white"></div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stats.js/r16/Stats.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/86/three.min.js"></script>
+  <script src="./TrackballControls.js"></script>
+  <script src="./DragControls.js"></script>
+  <script>
+    var container, stats;
+    var camera, controls, scene, raycaster, renderer;
+    var mouse = new THREE.Vector2(), INTERSECTED;
+    var radius = 100, theta = 0;
+    init();
+    animate();
+    function init() {
+      container = document.createElement( 'div' );
+      document.body.appendChild( container );
+
+      camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
+      camera.position.z = 1000;
+
+      controls = new THREE.TrackballControls( camera );
+      controls.rotateSpeed = 1.0;
+      controls.zoomSpeed = 3;
+      controls.panSpeed = 0.8;
+      controls.noZoom = false;
+      controls.noPan = false;
+      controls.staticMoving = true;
+      controls.dynamicDampingFactor = 0.2;
+      controls.maxDistance = 1000;
+
+      scene = new THREE.Scene();
+      scene.add( new THREE.AmbientLight( 0x505050 ) );
+
+      var light = new THREE.SpotLight(0xffffff, 1.5);
+      light.position.set(0, 500, 2000);
+      light.castShadow = true;
+      light.shadow = new THREE.LightShadow(new THREE.PerspectiveCamera(50, 1, 200, 10000));
+      light.shadow.bias = - 0.00022;
+      light.shadow.mapSize.width = 2048;
+      light.shadow.mapSize.height = 2048;
+      scene.add(light);
+
+      var geometry = new THREE.BoxBufferGeometry( 20, 20, 20 );
+
+      this.cubes = [];
+      for ( var i = 0; i < 1000; i ++ ) {
+        var object = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: 0xfd5139 } ) );
+        object.position.x = Math.random() * 50 * Math.PI;
+        object.position.y = Math.random() * 50 * Math.PI;
+        object.position.z = Math.random() * 50 * Math.PI;
+        object.rotation.x = Math.random() * 2 * Math.PI;
+        object.rotation.y = Math.random() * 2 * Math.PI;
+        object.rotation.z = Math.random() * 2 * Math.PI;
+        object.scale.x = Math.random() * 2 + 0.5;
+        object.scale.y = Math.random() * 2 + 0.5;
+        object.scale.z = Math.random() * 2 + 0.5;
+        scene.add( object );
+        this.cubes.push(object);
+      }
+
+
+
+      raycaster = new THREE.Raycaster();
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setClearColor( 0xf0f0f0 );
+      renderer.setPixelRatio( window.devicePixelRatio );
+      renderer.setSize( window.innerWidth, window.innerHeight );
+      renderer.sortObjects = false;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFShadowMap;
+
+      container.appendChild(renderer.domElement);
+
+      var dragControls = new THREE.DragControls( this.cubes, camera, renderer.domElement );
+      dragControls.addEventListener( 'dragstart', function ( event ) { controls.enabled = false; } );
+      dragControls.addEventListener( 'dragend', function ( event ) { controls.enabled = true; } );
+
+      window.addEventListener( 'resize', onWindowResize, false );
+    }
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize( window.innerWidth, window.innerHeight );
+    }
+    function onDocumentMouseMove( event ) {
+      event.preventDefault();
+      mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+      mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+    }
+    //
+    function animate() {
+      requestAnimationFrame( animate );
+      render();
+    }
+    function render() {
+      controls.update();
+
+      /*
+      for ( var i = 0; i < this.cubes.length; i++) {
+        if (this.cubes[1].position.y === 0) {
+          this.cubes[i].position.y = Math.random() * 800 - 400;
+        }
+
+        if (i % 2 === 0) {
+          this.cubes[i].rotation.z += 0.0025;
+          this.cubes[i].position.y -= 0.001;
+        } else if (i % 3 === 0) {
+          this.cubes[i].rotation.y -= 0.004;
+          this.cubes[i].position.y += 0.0012;
+        } else {
+          this.cubes[i].rotation.x += 0.001;
+          this.cubes[i].position.y += 0.001;
+          this.cubes[i].position.x += 0.0006;
+        }
+      }
+      */
+
+      renderer.render( scene, camera );
+    }
+  </script>
+</body>
+</html>

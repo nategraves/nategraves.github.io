@@ -1,7 +1,7 @@
 var flock;
 
 function setup() {
-  createCanvas(windowWidth, 500);
+  createCanvas(windowWidth, windowHeight);
 
   flock = new Flock();
   for (var i = 0; i < 200; i++) {
@@ -11,7 +11,8 @@ function setup() {
 }
 
 function draw() {
-  flock.run(createVector(mouseX, mouseY));
+  const mousePosition = createVector(mouseX, mouseY);
+  flock.run();
 }
 
 function Flock() {
@@ -20,6 +21,7 @@ function Flock() {
 }
 
 Flock.prototype.run = function(target) {
+  clear();
   for (var i = 0; i < this.dots.length; i++) {
     this.dots[i].run(this.dots, target);
   }
@@ -31,12 +33,12 @@ Flock.prototype.addDot = function(d) {
 
 function Dot(x, y) {
   this.acceleration = createVector(0,0);
-  this.velocity = createVector(random(-1,1),random(-1,1));
-  this.position = createVector(x,y);
-  this.r = random(2, 10);
+  this.velocity = createVector(random(-3, 3), random(-3, 3));
+  this.position = createVector(x, y);
+  this.r = random(1, 20);
   this.maxspeed = 3;    // Maximum speed
   this.maxforce = 0.05; // Maximum steering force
-  this.lifetime = 240;
+  this.lifetime = 255;
 }
 
 Dot.prototype.run = function(dots, target) {
@@ -57,8 +59,8 @@ Dot.prototype.flock = function(dots, target) {
 
   // Arbitrarily weight these forces
   sep.mult(1.0);
-  ali.mult(0.1);
-  coh.mult(1.5);
+  ali.mult(0.8);
+  coh.mult(1.0);
 
   // Add the force vectors to acceleration
   this.applyForce(sep);
@@ -73,15 +75,13 @@ Dot.prototype.update = function() {
 
   // Reset accelertion to 0 each cycle
   this.acceleration.mult(0);
-  this.lifespan -= 2;
+  this.lifetime -= 0.3;
 }
 
 Dot.prototype.seek = function(target) {
   var desired = p5.Vector.sub(target, this.position);
-  // Normalize desired and scale to maximum speed
   desired.normalize();
   desired.mult(this.maxspeed);
-  // Steering = Desired minus Velocity
   var steer = p5.Vector.sub(desired,this.velocity);
   steer.limit(this.maxforce);  // Limit to maximum steering force
   return steer;
@@ -89,12 +89,18 @@ Dot.prototype.seek = function(target) {
 
 Dot.prototype.render = function() {
   var theta = this.velocity.heading() + radians(90);
-  stroke(235, 255, 0, this.lifetime);
-  fill(235, 255, 0, this.lifetime);
-  //push();
-  //rotate(theta);
-  ellipse(this.position.x, this.position.y, this.r, this.r);
-  //pop();
+  if (this.lifetime > 0) {
+    stroke(235 - this.r, 255, 0, this.lifetime);
+    fill(235 - this.r, 255, 0, this.lifetime);
+    //stroke(235, 255, 0);
+    //fill(235, 255, 0);
+    //push();
+    rotate(theta);
+    ellipse(this.position.x, this.position.y, this.r, this.r);
+    //pop();
+  } else {
+    //this.
+  }
 }
 
 // Wraparound
