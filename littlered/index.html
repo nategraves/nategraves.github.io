@@ -12,14 +12,16 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/7.0.0/normalize.min.css" rel="stylesheet" type="text/css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css" rel="stylesheet" type="text/css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
-  <link href='//fonts.googleapis.com/css?family=Raleway:400,300,600' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Raleway:400,300,600' rel='stylesheet' type='text/css'>
+  <link href="https://fonts.googleapis.com/css?family=Noto+Serif:700i" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet">
   <link href='assets/stylesheet.css' rel="stylesheet" type="text/css">
   <link rel="stylesheet" href="styles.css" type="text/css">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.11/p5.min.js"></script>
-  <script src="index-p5.js"></script>
 
   <!--
+  <script src="index-p5.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.0/d3.min.js"></script>
   <script src="index-d3.js"></script>
   <script src="index-three.js"></script>
@@ -32,42 +34,96 @@
 <body>
   <div class="header red">
     <div class="nav">
-      <a href="flock.html">About</a>
-      <a href="three.html">Hire</a>
-      <a href="#about">Join</a>
-      <a href="#about">Contact</a>
+      <a href="flock.html">Contact</a>
+      <a href="three.html">What We Do</a>
+      <a href="#about">Hire</a>
     </div>
     <div class="little-logo">
       <a href="/littlered"><img src="little-logo.png" /></a>
     </div>
     <div class="social-links">
       <a href="https://twitter.com"><i class="fa fa-twitter"></i></a>
-      <a href="https://facebook.com"><i class="fa fa-facebook"></i></a>
-      <a href="https://instagram.com"><i class="fa fa-instagram"></i></a>
+      <a href="https://gmail.com"><i class="fa fa-envelope"></i></a>
     </div>
   </div>
   <div class="home">
     <img src="logo.svg" class="big-logo" />
-    <div id="interactive" class="white"></div>
+    <div id="interactive" class="red"></div>
   </div>
-  <div class="white section copy-divider">
-    <div>
-      <h1>Header One</h1>
-      <p>Here's some body copy. The body copy is pretty good at helping to divide things up.</p>
-    </div>
-    <div>
-      <h1>Header One</h1>
-      <p>Here's some body copy. The body copy is pretty good at helping to divide things up.</p>
-    </div>
-    <div>
-      <h1>Header One</h1>
-      <p>Here's some body copy. The body copy is pretty good at helping to divide things up.</p>
+  <div class="red hero-title">
+    <h2>A design studio with product and strategy chops</h2>
+    <i class="fa fa-chevron-down"></i>
+  </div>
+  <div class="three-reasons">
+    <div class="three-columns">
+      <div class="three-column">
+        <h2 class="jumbo">1</h2>
+        <div>
+          <h3 class="fancy-title">Design Services</h3>
+          <p>We are seasoned designers with exertise in branding and identity, packaging, campaigns and art direction, illustration, photo and video, interactive design, and more.</p>
+        </div>
+      </div>
+      <div class="three-column">
+        <h2 class="jumbo">2</h2>
+        <div>
+          <h3 class="fancy-title">Product Development</h3>
+          <p>Our crews of talented engineers and developers are exemplorary: we work with only the most design-savvy talent to create your app, site, or interactive experience.</p>
+        </div>
+      </div>
+      <div class="three-column">
+        <h2 class="jumbo">3</h2>
+        <div>
+          <h3 class="fancy-title">Strategic Consultation</h3>
+          <p>Do you need a new direction for your marketing? An overhaul to your brand? We got you. We can develop speculative concepts &amp; narratives to aid your company's decision-making and steer you to the intended future.</p>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="section color-divider">
-    <div class="red"></div>
-    <div class="red-medium"></div>
-    <div class="red-light"></div>
+  <div class="work-gallery">
+    <h2>Take a look at our work</h2>
+    <div class="work-columns">
+      <div class="work-column"><div class="work-image"></div></div>
+      <div class="work-column info">
+        <h3 class="fancy-title">SwissGear.com &amp; Mobile</h3>
+        <p>Bringing a fresh e-commerce experience to a household name, a new streamlined design to SwissGear's luggage and backpacks.</p>
+        <p class="right-info">
+          Client: Group III/Swiss Gear<br>
+          Creative Direction: Colin Snyder
+        </p>
+        <h3 class="fancy-title">Harris Salat Restaurants</h3>
+        <p>Bringing a fresh e-commerce experience to a household name, a new streamlined design to SwissGear's luggage and backpacks.</p>
+        <p class="right-info">
+          Client: Harris Salat<br>
+          Creative Direction: Colin Snyder, Development: Bob Paulsen
+        </p>
+      </div>
+      <div class="work-column"><div class="work-image"></div></div>
+    </div>
+    <div class="text-center">
+      <a class="full-portfolio" href="#">Full Portfolio</a>
+    </div>
+    <div class="brand-list">
+      <h3 class="red">We have worked with some great brands</h3>
+      <div class="brands">
+        <span>Vice</span>
+        <span>SwissGear</span>
+        <span>Ganso</span>
+      </div>
+      <h3 class="white">We're just getting started</h3>
+    </div>
+    <div class="follow">
+      <h3>Follow along.</h3>
+      <button>Join Mailing List</button>
+    </div>
+    <div class="footer">
+      <h3 class="red">sup@little-red.co</h3>
+      <p class="disclaimer">
+        &copy; All images copyrighted unless noted Little Red, Colin Snyder, Scallopdelion, and their 
+        logomarks 2005-2017. This content is protected by copyright and other applicable laws<br>in the 
+        United States and other nations and may not be duplicated, distributed, re-broadcast, or used 
+        in any other manner without the expressed written consent of the copyright owner.
+      </p>
+    </div>
   </div>
 </body>
 </html>

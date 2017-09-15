@@ -84,8 +84,8 @@ Dot.prototype.update = function() {
 
 Dot.prototype.display = function() {
   if (this.lifespan >  2) {
-    stroke(235, 255, 0, this.lifespan);
-    fill(235, 255, 0, this.lifespan);
+    stroke(255, 255, 255, this.lifespan);
+    fill(255, 255, 255, this.lifespan);
     ellipse(this.position.x, this.position.y, 150, 150);
   }
 }
@@ -112,8 +112,8 @@ MovingDot.prototype.update = function() {
 
 MovingDot.prototype.display = function() {
   if (this.lifespan >  2) {
-    stroke(235, 255, 0, this.lifespan);
-    fill(235, 255, 0, this.lifespan);
+    stroke(255, 255, 255, this.lifespan);
+    fill(255, 255, 255, this.lifespan);
     ellipse(this.position.x, this.position.y, this.radius, this.radius);
   }
 }
