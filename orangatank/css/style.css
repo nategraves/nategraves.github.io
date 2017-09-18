@@ -223,8 +223,7 @@ li.nav-item .btn-white {
   .cover-1 button.download {
     background-color: #3674a5;
     border-color: #3674a5;
-    transition: 0.33s all ease-in;
-    margin: 2rem;}
+    transition: 0.33s all ease-in;}
   .cover-1 button.download:hover {
     background-color: #548ebb;
     border-color: #548ebb; }
