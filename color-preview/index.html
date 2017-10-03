@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Preview Colors</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.5.3/css/bulma.css" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tinycolor/1.4.1/tinycolor.js"></script>
+    <script>
+      function buildPalette() {
+        const colors = $('.input').val().split(/[ ,]+/);
+        const palette = $('<div class="palette tile is-parent is-12"></div>');
+        for (let i = 0; i < colors.length; i += 1) {
+          let color = colors[i];
+          tinyColor = tinycolor(color);
+          let lightClass = tinyColor.isLight() ? 'light' : 'dark';
+          palette.append(`<div class="color tile ${lightClass}" style="background-color: ${tinyColor.toHexString()};">${tinyColor.toHexString()}</div>`);
+        }
+        $('.palettes').append(palette);
+        $('.input').val('');
+      }
+
+      $(function() {
+        $('.preview').on('click', function() {
+          buildPalette();
+        });
+
+        $('.color-form').on('submit', function(e) {
+          e.preventDefault();
+          buildPalette();
+        })
+      })
+    </script>
+	</head>
+	<body>
+    <section class="section">
+      <div class="container">
+        <label class="label">Colors</label>
+        <div class="field has-addons">
+          <div class="control is-expanded">
+            <form class="color-form">
+              <input id="colors-input" class="input" type="text" placeholder="Enter Colors">
+            </form>
+          </div>
+          <div class="control">
+            <a class="button is-info preview">Preview</a>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="section">
+      <div class="container">
+        <div class="palettes tile is-ancestor"></div>
+      </div>
+    </section>
+  </body>
+</html>

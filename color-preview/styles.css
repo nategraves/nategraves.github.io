@@ -1,0 +1,19 @@
+.color {
+  display: flex;
+  height: 120px;
+  padding: 12px 18px;
+  text-transform: uppercase;
+  align-items: flex-end;
+}
+
+.color.dark {
+  color: #f0f0f0;
+}
+
+.color.light {
+  color: #0F0F0F;
+}
+
+.palettes {
+  flex-wrap: wrap;
+}
