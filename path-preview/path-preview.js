@@ -87,19 +87,33 @@ $(function() {
     $(this).closest('.color-container').remove();
   });
 
-  /*
   $(document).on('click', 'svg', function() {
-    var svgData = $(this).html();
-    var svgBlob = new Blob([svgData], {type:"image/svg+xml;charset=utf-8"});
-    var svgUrl = URL.createObjectURL(svgBlob);
+    //const svgData = $(this).parent().html();
+    const svgData = $(this).parent().get(0);
+    const serializer = new XMLSerializer();
+    let source = serializer.serializeToString(svgData);
+
+    if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+      source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+
+    if(!source.match(/^<svg[^>]+"http\:\/\/www\.w3\.org\/1999\/xlink"/)){
+      source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+    }
+  
+    source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+
+    //var svgBlob = new Blob([svgData], {type:"image/svg+xml;charset=utf-8"});
+    //var svgUrl = URL.createObjectURL(svgBlob);
+
+    var svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`;
     var downloadLink = document.createElement("a");
     downloadLink.href = svgUrl;
-    downloadLink.download = "newesttree.svg";
+    downloadLink.download = `${Date.now()}.svg`;
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
   });
-  */
 
   $('#colors-input').focus();
 })
