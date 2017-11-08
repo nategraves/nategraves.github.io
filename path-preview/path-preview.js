@@ -1,4 +1,25 @@
 let _draw;
+let _drawnPath;
+
+const _greys = [
+  '#fff7ed',
+  '#e5ded5',
+  '#bfb982',
+  '#7f7b76',
+  '#403e3c',
+  '#33312f',
+  '#0C0C0A'
+];
+
+const _colors = [
+  '#56b9d0',
+  '#fbba42',
+  '#f24c27',
+  '#e849e3',
+  '#5072ff',
+  '#a1dca7',
+  '#f0f0f2'
+];
 
 function buildSVG() {
   $('.svgs').empty();
@@ -23,18 +44,20 @@ function generatePath() {
   _draw.clear();
   $('.lloader').show();
   $.ajax({
-    url: 'https://93e9ced1.ngrok.io',
+    url: 'https://41bc3972.ngrok.io',
     type: 'GET'
   }).done(function(response) {
-    const pathStrings = response.path.split(/\r?\n/);
-    let drawnPath;
+    const pathStrings = response.paths;
     for (let i = 0; i < pathStrings.length; i++) {
       const path = pathStrings[i];
       if (path === "") continue;
       try {
-        drawnPath = _draw.path(path);
-        console.log(path);
-        if (drawnPath.bbox().w === 0 || drawnPath.bbox().h === 0) { throw "Path with 0px width/height"; }
+        _drawnPath = _draw.path(path);
+        _drawnPath.fill('#212025');
+        if (_drawnPath.bbox().w === 0 || _drawnPath.bbox().h === 0) { 
+          _drawnPath.remove();
+          throw "Path with 0px width/height";
+        }
       }
       catch (e) {
         console.log(`Problem creating path: ${path}`);
@@ -42,23 +65,38 @@ function generatePath() {
       }
 
       $('.lloader').hide();
+      $('.controls').fadeIn();
       const maxScale = 0.667;
-      const widthScale = maxScale / (drawnPath.bbox().w / _draw.width());
-      const heightScale = maxScale / (drawnPath.bbox().h / _draw.height());
-      //drawnPath.scale(widthScale, heightScale);
-      drawnPath.size(_draw.width() * maxScale, _draw.height() * maxScale);
+      const widthScale = maxScale / (_drawnPath.bbox().w / _draw.width());
+      const heightScale = maxScale / (_drawnPath.bbox().h / _draw.height());
+      //_drawnPath.scale(widthScale, heightScale);
+      _drawnPath.size(_draw.width() * maxScale, _draw.height() * maxScale);
 
-      const xMove = drawnPath.transform().x + ((_draw.width() - drawnPath.bbox().w) / 2) - drawnPath.bbox().x;
-      const yMove =  drawnPath.transform().y + ((_draw.height() - drawnPath.bbox().h) / 2) - drawnPath.bbox().y;
-      drawnPath.translate(xMove, yMove);
+      const xMove = _drawnPath.transform().x + ((_draw.width() - _drawnPath.bbox().w) / 2) - _drawnPath.bbox().x;
+      const yMove =  _drawnPath.transform().y + ((_draw.height() - _drawnPath.bbox().h) / 2) - _drawnPath.bbox().y;
+      _drawnPath.translate(xMove, yMove);
     }
 
-    if (drawnPath === null) console.log("No paths generated");
+    if (_drawnPath === null) console.log("No paths generated");
   });
 }
 
 $(function() {
   $('.lloader').hide();
+
+  for(let i = 0; i < _greys.length; i++) {
+    const monoLeft = `<div class="bg-color" style="background-color: ${_greys[i]}"></div>`;
+    const monoRight = `<div class="path-color" style="background-color: ${_greys[i]}"></div>`;
+    $('.controls-left').append(monoLeft);
+    $('.controls-right').append(monoRight);
+  }
+
+  for(let i = 0; i < _colors.length; i++) {
+    const colorLeft = `<div class="bg-color" style="background-color: ${_colors[i]}"></div>`;
+    const colorRight = `<div class="path-color" style="background-color: ${_colors[i]}"></div>`;
+    $('.controls-left').append(colorLeft);
+    $('.controls-right').append(colorRight);
+  }
 
   $('.preview').on('click', function() {
     buildSVG();
@@ -70,7 +108,7 @@ $(function() {
   });
 
   $('.generate').on('click', function() {
-    if (!_draw) _draw = SVG('svgs').size(300, 300);
+    if (!_draw) _draw = SVG('svgs').size(500, 500);
     generatePath();
   })
 
@@ -84,6 +122,17 @@ $(function() {
     } else {
       $('.pairing').fadeOut(150);
     }
+  });
+
+  $(document).on('click', '.bg-color', function() {
+    const color = $(this).css('background-color');
+    _draw.fill(color);
+  });
+
+  $(document).on('click', '.path-color', function() {
+    console.log("path COLOR");
+    const color = $(this).css('background-color');
+    _drawnPath.fill(color);
   });
 
   $(document).on('click', '.remove-color', function() {

@@ -19,28 +19,23 @@
     <script src="svg.draggable.min.js"></script>
 	</head>
 	<body>
-    <section class="section">
-      <div class="container">
-        <label class="label">Path Data</label>
-        <div class="field has-addons">
-          <div class="control is-expanded">
-            <form class="path-form">
-              <input class="input" type="text" placeholder="Enter Path Data">
-            </form>
-          </div>
-          <div class="control">
-            <a class="button is-info preview">Preview</a>
-          </div>
-        </div>
-      </div>
-    </section>
     <section>
-      <div class="container has-text-centered">
-        <div id="svgs" class="svgs"></div>
-        <a class="button generate">
-          Shaperator
-          <div class="lloader"><div class="lloader__figure"></div></div>
-        </a>
+      <div class="tainer">
+        <div class="lloader"><div class="lloader__figure"></div></div>
+        <!--
+        <div class="controls-left">
+          <span class="controls-header">Background</span>
+        </div>
+        -->
+        <div id="svgs" class="svgs">
+          <a class="button generate is-primary">Shaperator</a>
+          <p class="save-hint">(Click shape to save)</p>
+        </div>
+        <!--
+        <div class="controls-right">
+          <span class="controls-header">Path</span>
+        </div>
+        -->
       </div>
     </section>
   </body>
