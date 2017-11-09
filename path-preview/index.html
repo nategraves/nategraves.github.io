@@ -6,36 +6,31 @@
     <title>Preview SVG Paths</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.5.3/css/bulma.css" />
-    <link rel="stylesheet" href="svg.select.min.css" />
     <link rel="stylesheet" href="styles.css" />
-
     <script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tinycolor/1.4.1/tinycolor.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/3.16.4/math.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/svg.js/2.6.3/svg.min.js"></script>
     <script src="path-preview.js"></script>
-    <script src="svg.select.min.js"></script>
-    <script src="svg.resize.min.js"></script>
-    <script src="svg.draggable.min.js"></script>
 	</head>
 	<body>
+    <section class="section">
+      <div class="container">
+        <label class="label">Path Data</label>
+        <div class="field has-addons">
+          <div class="control is-expanded">
+            <form class="path-form">
+              <input class="input" type="text" placeholder="Enter Path Data">
+            </form>
+          </div>
+          <div class="control">
+            <a class="button is-info preview">Preview</a>
+          </div>
+        </div>
+      </div>
+    </section>
     <section>
-      <div class="tainer">
-        <div class="lloader"><div class="lloader__figure"></div></div>
-        <!--
-        <div class="controls-left">
-          <span class="controls-header">Background</span>
-        </div>
-        -->
-        <div id="svgs" class="svgs">
-          <a class="button generate is-primary">Shaperator</a>
-          <p class="save-hint">(Click shape to save)</p>
-        </div>
-        <!--
-        <div class="controls-right">
-          <span class="controls-header">Path</span>
-        </div>
-        -->
+      <div class="container">
+        <div class="svgs tile is-ancestor"></div>
       </div>
     </section>
   </body>

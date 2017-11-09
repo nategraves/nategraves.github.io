@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Preview SVG Paths</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.5.3/css/bulma.css" />
+    <link rel="stylesheet" href="svg.select.min.css" />
+    <link rel="stylesheet" href="styles.css" />
+
+    <script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tinycolor/1.4.1/tinycolor.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/3.16.4/math.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/svg.js/2.6.3/svg.min.js"></script>
+    <script src="path-preview.js"></script>
+    <script src="svg.select.min.js"></script>
+    <script src="svg.resize.min.js"></script>
+    <script src="svg.draggable.min.js"></script>
+	</head>
+	<body>
+    <section>
+      <div class="tainer">
+        <!--
+        <div class="controls-left">
+          <span class="controls-header">Background</span>
+        </div>
+        -->
+        <div class="top">
+          <p class="save-hint">(Click shape to save as SVG)</p>
+        </div> 
+        <div id="svgs" class="svgs"></div>
+        <!--
+        <div class="controls-right">
+          <span class="controls-header">Path</span>
+        </div>
+        -->
+        <div class="bottom">
+          <a class="button generate is-primary">
+            Generate Shape
+            <div class="lloader"><div class="lloader__figure"></div></div>
+            <div class="error">There was a problem generating a new shape. Please try again</div>
+          </a>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>
