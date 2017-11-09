@@ -15,7 +15,7 @@ html {
 
 .generate {
   position: relative;
-  margin: 45px auto 75px;
+  margin: 50px auto 25px;
 }
 
 .lloader,
@@ -42,8 +42,9 @@ html {
 
 .save-hint {
   font-size: 0.8em;
+  line-height: 1;
   color: rgba(0, 5, 0, 0.2);
-  margin-bottom: 20px;
+  margin-bottom: 5px;
 }
 
 section {
@@ -81,10 +82,6 @@ svg {
   min-height: 550px;
   flex-direction: column;
   align-items: center;
-}
-
-.top {
-  margin-top: 20px;
 }
 
 @keyframes lloader-figure {
