@@ -19,14 +19,15 @@
     <section>
       <div class="tainer">
         <div class="top">
+          <div class="lloader"><div class="lloader__figure"></div></div>
           <a class="button generate is-primary">
             Generate Shape
-            <div class="lloader"><div class="lloader__figure"></div></div>
             <div class="error">There was a problem generating a new shape. Please try again</div>
           </a>
         </div> 
-        <p class="save-hint">(Click to save as SVG)</p>
-        <div id="svgs" class="svgs">
+        <div class="svgs-container">
+          <p class="save-hint">(Click to save as SVG)</p>
+          <div id="svgs"></div>
         </div>
       </div>
     </section>

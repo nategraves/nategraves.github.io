@@ -4,103 +4,6 @@ html {
   width: 100%;
 }
 
-.color {
-  align-items: flex-end;
-  box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0);
-  box-sizing: border-box;
-  border: 0;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  justify-content: flex-end;
-  min-height: 200px;
-  padding: 12px;
-  position: relative;
-  text-transform: uppercase;
-  vertical-align: middle;
-}
-
-.color:last-of-type {
-  margin-right: 0;
-}
-
-.color::before,
-.color::after {
-  border: 6px solid transparent;
-  border-radius: 4px;
-  box-sizing: inherit;
-  content: '';
-  height: 0;
-  position: absolute;
-  width: 0;
-}
-
-.color::before {
-  top: 0;
-  left: 0;
-}
-
-.color::after {
-  top: 0;
-  left: 0;
-}
-
-.color.selected::before,
-.color.selected::after {
-  width: 100%;
-  height: 100%;
-}
-
-.color.selected::before {
-  border-top-color: rgba(255, 255, 255, 0.5);
-  border-right-color: rgba(255, 255, 255, 0.5);
-  transition: width 0.15s ease-out, height 0.15s ease-out 0.15s;
-}
-
-.color.selected::after {
-  border-bottom-color: rgba(255, 255, 255, 0.5);
-  border-left-color: rgba(255, 255, 255, 0.5);
-  transition: height 0.15s ease-out, width 0.15s ease-out 0.15s;
-}
-
-.controls-left,
-.controls-right {
-  align-items: center;
-  border: 2px solid rgba(0, 0, 5, 0.06);
-  border-bottom: 0px;
-  /*background-color: rgba(0, 0, 5, 0.06);*/
-  border-radius: 3px;
-  display: flex;
-  flex: 0 1 195px;
-  flex-direction: column;
-  flex-wrap: wrap;
-  height: 500px;
-  justify-content: center;
-  margin-top: 86px;
-  position: relative;
-}
-
-.controls-left {
-  border-left: 0px;
-}
-
-.controls-right {
-  border-right: 0px;
-}
-
-.controls-header {
-  color: rgba(0, 0, 5, 0.8); 
-  display: inline-block;
-  font-size: 14px;
-  font-weight: bold;
-  line-height: 2em;
-  position: absolute;
-  text-transform: uppercase;
-  text-align: center;
-  top: -2em;
-}
-
 .error {
   display: none;
   position: absolute;
@@ -110,35 +13,6 @@ html {
   color: #8d3b3e;
 }
 
-.mono {
-  height: 33px;
-  width: 100%;
-}
-
-.mono-container .mono:first-of-type {
-  border-bottom-left-radius: 4px;
-}
-
-.mono-container .mono:last-of-type {
-  border-bottom-right-radius: 4px;
-}
-
-.gradient-container,
-.mono-container {
-  margin-top: 1px;
-  display: flex;
-}
-
-.gradient {
-  height: 100px;
-  width: 100%;
-  margin-right: 1px;
-}
-
-.gradient:last-of-type {
-  margin-right: 0;
-}
-
 .generate {
   position: relative;
   margin: 45px auto 75px;
@@ -146,14 +20,8 @@ html {
 
 .lloader,
 .lloader__figure {
-  position: absolute;
-  top: 50%;
-  right: 50%;
-  -webkit-transform: translate(-50%, -50%);
-  -moz-transform: translate(-50%, -50%);
-  -ms-transform: translate(-50%, -50%);
-  -o-transform: translate(-50%, -50%);
-  transform: translate(-50%, -50%);
+  margin: 0 auto;
+  transform: translate(0%, -50%);
 }
 
 .lloader {
@@ -170,56 +38,6 @@ html {
   border: 0 solid #FE665C;
   border-radius: 50%;
   animation: lloader-figure 1.15s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
-}
-
-.lloader__label {
-  float: left;
-  margin-left: 50%;
-  transform: translateX(-50%);
-  margin: 0.5em 0 0 50%;
-  font-size: 0.875em;
-  letter-spacing: 0.1em;
-  line-height: 1.5em;
-  color: #8d3b3e;
-  white-space: nowrap;
-  animation: lloader-label 1.15s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
-}
-
-.pair {
-  border-radius: 40px;
-  height: 40px;
-  margin-bottom: 4px;
-  width: 45%;
-  opacity: 1;
-  transition: 0.2s opacity ease-in-out;
-}
-
-.pair:hover {
-  opacity: 0.66;
-}
-
-.pairing {
-  display: none;
-  height: 200px;
-  padding: 12px;
-  width: 100%;
-}
-
-.path-color,
-.bg-color {
-  border-radius: 30px;
-  box-shadow: 0px 2px 4px 0px rgba(0,0,0,0.2); 
-  cursor: pointer;
-  flex: 0 0 auto;
-  height: 50px;
-  margin: 10px;
-  transition: 0.1s border ease-in-out;
-  width: 50px;
-}
-
-.path-color:hover,
-.bg-color:hover {
-  border: 0px;
 }
 
 .save-hint {
@@ -243,7 +61,14 @@ svg {
   cursor: pointer;
 }
 
-.svgs {
+.svgs-container {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+#svgs {
   display: flex;
   flex: 1 1 auto;
   flex-wrap: wrap;

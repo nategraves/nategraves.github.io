@@ -2,21 +2,20 @@ let _draw;
 let _drawnPath;
 
 function generatePath() {
-  console.log("Generating....");
-  $('#svgs').hide();
   $('.lloader').fadeIn();
-  $('.error').fadeOut();
+  $('.error').hide();
+  $('#svgs').hide();
   $.ajax({
     url: 'https://41bc3972.ngrok.io/generate',
     type: 'GET',
     success: function(response) {
       draw(response.paths);
-      $('.lloader').fadeOut();
+      $('.lloader').hide();
       $('#svgs').fadeIn();
     },
     error: function(error) {
-      $('.lloader').fadeOut();
-      $('.error').show();
+      $('.lloader').hide();
+      $('.error').fadeIn();
       $('#svgs').fadeIn();
     }
   }).done();
@@ -71,7 +70,6 @@ $(function() {
   })
 
   $(document).on('click', 'svg', function() {
-    console.log("Saving SVG...");
     const serializer = new XMLSerializer();
     let source = serializer.serializeToString(this);
 
