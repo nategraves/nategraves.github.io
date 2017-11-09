@@ -35,7 +35,7 @@ $(function() {
 
     $(document).on('click', '.remove-color', function() {
         $(this).closest('.color-container').remove();
-    })
+    });
 
     $('#colors-input').focus();
 })

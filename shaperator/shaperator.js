@@ -67,7 +67,23 @@ $(function() {
 
   $('.generate').click(function() {
     generatePath();
-  })
+  });
+
+  /*
+  $(document).on('mouseover', 'svg', function(e) {
+    var width = ($(this).width()) / 255;
+    var height = ($(this).height()) / 255;
+    var pageX = parseInt(e.clientX / width,10);
+    var pageY = parseInt(e.clientY / height,10);
+    var rgb = `rgb(${pageX},${pageY},${pageX})`;
+
+    var path = this.childNodes.forEach((node) => {
+      if (node.constructor.name === "SVGPathElement") {
+        node.setAttribute("fill", rgb);
+      }
+    });
+  });
+  */
 
   $(document).on('click', 'svg', function() {
     const serializer = new XMLSerializer();
