@@ -3,19 +3,21 @@ let _drawnPath;
 
 function generatePath() {
   console.log("Generating....");
+  $('#svgs').hide();
   $('.lloader').fadeIn();
   $('.error').fadeOut();
   $.ajax({
     url: 'https://41bc3972.ngrok.io/generate',
     type: 'GET',
     success: function(response) {
-      draw(response.path);
+      draw(response.paths);
       $('.lloader').fadeOut();
-      $("#svgs").animate({ scrollTop: $('#svgs').prop("scrollHeight")}, 1000);
+      $('#svgs').fadeIn();
     },
     error: function(error) {
       $('.lloader').fadeOut();
       $('.error').show();
+      $('#svgs').fadeIn();
     }
   }).done();
 }
@@ -32,13 +34,10 @@ function draw(data) {
       const maxScale = 0.667;
       const widthScale = maxScale / (_drawnPath.bbox().w / _draw.width());
       const heightScale = maxScale / (_drawnPath.bbox().h / _draw.height());
-      console.log(`Width: ${widthScale}, Height: ${heightScale}`);
       _drawnPath.scale(widthScale, heightScale);
-      //_drawnPath.size(_draw.width() * maxScale, _draw.height() * maxScale);
 
       const xMove = _drawnPath.transform().x + ((_draw.width() - _drawnPath.bbox().w) / 2) - _drawnPath.bbox().x;
       const yMove =  _drawnPath.transform().y + ((_draw.height() - _drawnPath.bbox().h) / 2) - _drawnPath.bbox().y;
-      console.log(`xMove: ${xMove}, yMove: ${yMove}`);
       _drawnPath.translate(xMove, yMove);
     }
   }
@@ -50,13 +49,10 @@ function draw(data) {
     const maxScale = 0.667;
     const widthScale = maxScale / (_drawnPath.bbox().w / _draw.width());
     const heightScale = maxScale / (_drawnPath.bbox().h / _draw.height());
-    console.log(`Width: ${widthScale}, Height: ${heightScale}`);
     _drawnPath.scale(widthScale, heightScale);
-    //_drawnPath.size(_draw.width() * maxScale, _draw.height() * maxScale);
 
     const xMove = _drawnPath.transform().x + ((_draw.width() - _drawnPath.bbox().w) / 2) - _drawnPath.bbox().x;
     const yMove =  _drawnPath.transform().y + ((_draw.height() - _drawnPath.bbox().h) / 2) - _drawnPath.bbox().y;
-    console.log(`xMove: ${xMove}, yMove: ${yMove}`);
     _drawnPath.translate(xMove, yMove);
   }
 }
