@@ -3,18 +3,18 @@ let _drawnPath;
 
 function generatePath() {
   console.log("Generating....");
-  $('.lloader').show();
-  $('.error').hide();
+  $('.lloader').fadeIn();
+  $('.error').fadeOut();
   $.ajax({
     url: 'https://41bc3972.ngrok.io/generate',
     type: 'GET',
     success: function(response) {
       draw(response.path);
-      $('.lloader').hide();
+      $('.lloader').fadeOut();
       $("#svgs").animate({ scrollTop: $('#svgs').prop("scrollHeight")}, 1000);
     },
     error: function(error) {
-      $('.lloader').hide();
+      $('.lloader').fadeOut();
       $('.error').show();
     }
   }).done();
@@ -68,7 +68,6 @@ $(function() {
     type: 'GET'
   }).done(function(response) {
     draw(response.paths);
-    $('.lloader').hide();
   });
 
   $('.generate').click(function() {
@@ -76,11 +75,9 @@ $(function() {
   })
 
   $(document).on('click', 'svg', function() {
-    //const svgData = $(this).parent().html();
-    debugger;
-    const svgData = $(this).parent().get(0);
+    console.log("Saving SVG...");
     const serializer = new XMLSerializer();
-    let source = serializer.serializeToString(svgData);
+    let source = serializer.serializeToString(this);
 
     if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
       source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
@@ -91,12 +88,8 @@ $(function() {
     }
   
     source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
-
-    //var svgBlob = new Blob([svgData], {type:"image/svg+xml;charset=utf-8"});
-    //var svgUrl = URL.createObjectURL(svgBlob);
-
-    var svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`;
-    var downloadLink = document.createElement("a");
+    const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`;
+    const downloadLink = document.createElement("a");
     downloadLink.href = svgUrl;
     downloadLink.download = `${Date.now()}.svg`;
     document.body.appendChild(downloadLink);
