@@ -4,19 +4,19 @@ let _drawnPath;
 function generatePath() {
   $('.lloader').fadeIn();
   $('.error').hide();
-  $('#svgs').hide();
+  $('.svgs-container').hide();
   $.ajax({
     url: 'https://41bc3972.ngrok.io/generate',
     type: 'GET',
     success: function(response) {
       draw(response.paths);
       $('.lloader').hide();
-      $('#svgs').fadeIn();
+      $('.svgs-container').fadeIn();
     },
     error: function(error) {
       $('.lloader').hide();
       $('.error').fadeIn();
-      $('#svgs').fadeIn();
+      $('.svgs-container').fadeIn();
     }
   }).done();
 }
