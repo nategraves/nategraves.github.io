@@ -15,8 +15,16 @@ html {
 }
 
 .generate {
-  position: relative;
+  background-color: #909090;
+  color: #fff;
   margin: 50px auto 25px;
+  position: relative;
+  transition: all 0.3s ease-in-out;
+}
+
+.generate:hover {
+  background-color: #adadad;
+  color: #f0f0f0;
 }
 
 .lloader,
@@ -52,7 +60,9 @@ section {
   display: flex;
   flex-direction: column;
   height: min-content;
-  max-width: 900px;
+  max-width: 1400px;
+  min-width: 460px;
+  width: 80%;
   margin: 0 auto;
 }
 
