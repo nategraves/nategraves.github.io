@@ -1,6 +1,8 @@
 const maxScale = 0.667;
 let bb;
 let changeColor = false;
+let colorBackground = true;
+let shiftDown = false;
 
 function generatePath() {
   $('.lloader').fadeIn();
@@ -79,12 +81,14 @@ $(function() {
     generatePath();
   });
 
+  $(document).on('keyup keydown', (e) => shiftDown = e.shiftKey);
+
   $(document).on('contextmenu', 'svg', function() {
     return false;
   });
  
   $(document).on('mousemove touchmove', 'svg', function(e) {
-    if (changeColor) {
+    if (shiftDown) {
       var el = $(e.srcElement || e.target);
       var offset = el.offset();
       var width = ($(this).width()) / 360;
@@ -95,17 +99,56 @@ $(function() {
       var color = tinycolor({ h, s, v });
 
       var path = this.childNodes.forEach((node) => {
-        if (node.constructor.name === "SVGRectElement") {
+        if (colorBackground && node.constructor.name === "SVGRectElement") {
+          node.setAttribute("fill", `#${color.toHex()}`);
+        }
+        if (colorBackground && node.constructor.name === "SVGPathElement") {
+          node.setAttribute("fill", '#ffffff');
+        }
+
+        if (!colorBackground && node.constructor.name === "SVGRectElement") {
+          node.setAttribute("fill", '#ffffff');
+        }
+        if (!colorBackground && node.constructor.name === "SVGPathElement") {
           node.setAttribute("fill", `#${color.toHex()}`);
         }
       });
     }
   });
 
-  $(document).on('mousedown touchstart', 'svg', function(e) {
+  $(document).on('click', 'svg', function(e) {
     switch (e.which) {
       case 1:
-        changeColor = !changeColor;
+        colorBackground = !colorBackground;
+        var bgColor;
+        var fgColor;
+
+        this.childNodes.forEach((node) => {
+          if (colorBackground && node.constructor.name === "SVGRectElement") {
+            fgColor = node.getAttribute("fill");
+          }
+          if (colorBackground && node.constructor.name === "SVGPathElement") {
+            bgColor = node.getAttribute("fill");
+          }
+
+          if (!colorBackground && node.constructor.name === "SVGRectElement") {
+            fgColor = node.getAttribute("fill");
+          }
+          if (!colorBackground && node.constructor.name === "SVGPathElement") {
+            bgColor = node.getAttribute("fill");
+          }
+        });
+
+        this.childNodes.forEach((node) => {
+          if (node.constructor.name === "SVGRectElement") {
+            node.setAttribute("fill", bgColor);
+          }
+
+          if (node.constructor.name === "SVGPathElement") {
+            node.setAttribute("fill", fgColor);
+          }
+        });
+
         break;
       case 3:
         const serializer = new XMLSerializer();

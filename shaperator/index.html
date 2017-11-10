@@ -19,15 +19,22 @@
     <section>
       <div class="tainer">
         <div class="top">
-          <a class="button generate">
-            Generate Shape
-            <div class="error">There was a problem generating a new shape. Please try again</div>
-          </a>
+          <h1 class="is-size-1">Shaperator</h1> 
+          <hr>
+          <p class="is-size-7">
+            <b>Shift + Hover</b> = Change color<br>
+            <b>Left Click</b> = Swap foreground/background<br>
+            <b>Right Click</b> = Save as SVG
+          </p>
         </div> 
         <div class="lloader"><div class="lloader__figure"></div></div>
         <div class="svgs-container">
-          <p class="save-hint">(Click to enable changing color, right-click to save)</p>
           <div id="svgs"></div>
+        </div>
+        <div class="button">
+          <a class="button generate">Generate Shape
+            <div class="error">There was a problem generating a new shape. Please try again</div>
+          </a>
         </div>
       </div>
     </section>

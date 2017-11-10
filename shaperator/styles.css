@@ -95,6 +95,10 @@ svg {
   align-items: center;
 }
 
+.top {
+  margin-top: 20px;
+}
+
 @keyframes lloader-figure {
   0% {
     height: 0;
