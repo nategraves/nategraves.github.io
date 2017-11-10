@@ -27,6 +27,8 @@ function draw(data) {
     for (let i = 0; i < data.length; i++) {
       const currentPath = data[i];
       _draw = SVG('svgs').size(500, 500);
+      _draw.rect(500, 500).fill('#ffffff').move(0, 0);
+
       _drawnPath = _draw.path(currentPath);
       _drawnPath.fill('#212025');
 
@@ -42,6 +44,8 @@ function draw(data) {
   }
   else {
     _draw = SVG('svgs').size(500, 500);
+    _draw.rect(500, 500).fill('#ffffff').move(0, 0);
+
     _drawnPath = _draw.path(data);
     _drawnPath.fill('#212025');
 
@@ -69,21 +73,31 @@ $(function() {
     generatePath();
   });
 
-  /*
-  $(document).on('mouseover', 'svg', function(e) {
-    var width = ($(this).width()) / 255;
-    var height = ($(this).height()) / 255;
-    var pageX = parseInt(e.clientX / width,10);
-    var pageY = parseInt(e.clientY / height,10);
-    var rgb = `rgb(${pageX},${pageY},${pageX})`;
+  
+  $(document).on('mousemove', 'svg', function(e) {
+    var el = $(e.srcElement || e.target);
+    var offset = el.offset();
+    /*
+    var h = (e.pageX - offset.left) / Math.round(el.width() * 0.99);
+    var s = (e.pageY - offset.top) / el.height()
+    var l = h;
+    console.log(`(${h}, ${s}, ${l})`);
+    var color = tinycolor({ h, s, l });
+    */
+    var width = ($(this).width()) / 360;
+    var height = ($(this).height()) / 100;
+    var h = parseInt((e.pageX - offset.left) / width, 10);
+    var s = parseInt((e.pageY - offset.top) / height, 10);
+    var v = ((h / 3.6) + s) / 2;
+    console.log(`${h}, ${s}, ${v}`);
+    var color = tinycolor({ h, s, v });
 
     var path = this.childNodes.forEach((node) => {
       if (node.constructor.name === "SVGPathElement") {
-        node.setAttribute("fill", rgb);
+        node.setAttribute("fill", `#${color.toHex()}`);
       }
     });
   });
-  */
 
   $(document).on('click', 'svg', function() {
     const serializer = new XMLSerializer();
