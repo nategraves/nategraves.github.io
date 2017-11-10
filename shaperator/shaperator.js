@@ -80,7 +80,7 @@ $(function() {
   });
 
   
-  $(document).on('mousemove', 'svg', function(e) {
+  $(document).on('mousemove touchmove', 'svg', function(e) {
     if (changeColor) {
       var el = $(e.srcElement || e.target);
       var offset = el.offset();
