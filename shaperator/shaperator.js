@@ -89,7 +89,6 @@ $(function() {
       var h = parseInt((e.pageX - offset.left) / width, 10);
       var s = parseInt((e.pageY - offset.top) / height, 10);
       var v = ((h / 3.6) + s) / 2;
-      console.log(`${h}, ${s}, ${v}`);
       var color = tinycolor({ h, s, v });
 
       var path = this.childNodes.forEach((node) => {
