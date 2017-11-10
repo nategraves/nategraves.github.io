@@ -27,8 +27,8 @@ function drawPaths(data) {
     $('#svgs').empty();
     for (let i = 0; i < data.length; i++) {
       const currentPath = data[i];
-      const _draw = SVG('svgs').size(400, 400);
-      _draw.rect(400, 400).fill(tinycolor.random().toHexString()).move(0, 0);
+      const _draw = SVG('svgs').size(350, 350);
+      _draw.rect(350, 350).fill(tinycolor.random().toHexString()).move(0, 0);
 
       const _drawnPath = _draw.path(currentPath);
       _drawnPath.fill('#ffffff');
@@ -45,8 +45,8 @@ function drawPaths(data) {
     }
   }
   else {
-    _draw = SVG('svgs').size(400, 400);
-    _draw.rect(400, 400).fill(tinycolor.random().toHexString()).move(0, 0);
+    _draw = SVG('svgs').size(350, 350);
+    _draw.rect(350, 350).fill(tinycolor.random().toHexString()).move(0, 0);
 
     _drawnPath = _draw.path(data);
     _drawnPath.fill('#ffffff');
@@ -79,7 +79,10 @@ $(function() {
     generatePath();
   });
 
-  
+  $(document).on('contextmenu', 'svg', function() {
+    return false;
+  });
+ 
   $(document).on('mousemove touchmove', 'svg', function(e) {
     if (changeColor) {
       var el = $(e.srcElement || e.target);
