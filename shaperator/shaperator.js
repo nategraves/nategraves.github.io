@@ -1,5 +1,6 @@
 const maxScale = 0.667;
 let bb;
+let changeColor = false;
 
 function generatePath() {
   $('.lloader').fadeIn();
@@ -27,9 +28,10 @@ function drawPaths(data) {
     for (let i = 0; i < data.length; i++) {
       const currentPath = data[i];
       const _draw = SVG('svgs').size(400, 400);
-      _draw.rect(400, 400).fill('#ffffff').move(0, 0);
+      _draw.rect(400, 400).fill(tinycolor.random().toHexString()).move(0, 0);
 
       const _drawnPath = _draw.path(currentPath);
+      _drawnPath.fill('#ffffff');
       bb = _drawnPath.bbox();
 
       const widthScale = maxScale / (bb.w / _draw.width());
@@ -44,11 +46,10 @@ function drawPaths(data) {
   }
   else {
     _draw = SVG('svgs').size(400, 400);
-    _draw.rect(400, 400).fill('#ffffff').move(0, 0);
+    _draw.rect(400, 400).fill(tinycolor.random().toHexString()).move(0, 0);
 
     _drawnPath = _draw.path(data);
     _drawnPath.fill('#ffffff');
-    _drawnPath.stroke('#000000');
     bb = _drawnPath.bbox();
 
     const widthScale = maxScale / (bb.w / _draw.width());
@@ -80,41 +81,52 @@ $(function() {
 
   
   $(document).on('mousemove', 'svg', function(e) {
-    var el = $(e.srcElement || e.target);
-    var offset = el.offset();
-    var width = ($(this).width()) / 360;
-    var height = ($(this).height()) / 100;
-    var h = parseInt((e.pageX - offset.left) / width, 10);
-    var s = parseInt((e.pageY - offset.top) / height, 10);
-    var v = ((h / 3.6) + s) / 2;
-    var color = tinycolor({ h, s, v });
+    if (changeColor) {
+      var el = $(e.srcElement || e.target);
+      var offset = el.offset();
+      var width = ($(this).width()) / 360;
+      var height = ($(this).height()) / 100;
+      var h = parseInt((e.pageX - offset.left) / width, 10);
+      var s = parseInt((e.pageY - offset.top) / height, 10);
+      var v = ((h / 3.6) + s) / 2;
+      console.log(`${h}, ${s}, ${v}`);
+      var color = tinycolor({ h, s, v });
 
-    var path = this.childNodes.forEach((node) => {
-      if (node.constructor.name === "SVGPathElement") {
-        node.setAttribute("fill", `#${color.toHex()}`);
-      }
-    });
+      var path = this.childNodes.forEach((node) => {
+        if (node.constructor.name === "SVGRectElement") {
+          node.setAttribute("fill", `#${color.toHex()}`);
+        }
+      });
+    }
   });
 
-  $(document).on('click', 'svg', function() {
-    const serializer = new XMLSerializer();
-    let source = serializer.serializeToString(this);
+  $(document).on('mousedown touchstart', 'svg', function(e) {
+    switch (e.which) {
+      case 1:
+        changeColor = !changeColor;
+        break;
+      case 3:
+        const serializer = new XMLSerializer();
+        let source = serializer.serializeToString(this);
 
-    if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
-      source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
-    }
+        if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
+          source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+        }
 
-    if (!source.match(/^<svg[^>]+"http\:\/\/www\.w3\.org\/1999\/xlink"/)) {
-      source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+        if (!source.match(/^<svg[^>]+"http\:\/\/www\.w3\.org\/1999\/xlink"/)) {
+          source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+        }
+      
+        source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+        const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`;
+        const downloadLink = document.createElement("a");
+        downloadLink.href = svgUrl;
+        downloadLink.download = `${Date.now()}.svg`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+
+        break;
     }
-  
-    source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
-    const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`;
-    const downloadLink = document.createElement("a");
-    downloadLink.href = svgUrl;
-    downloadLink.download = `${Date.now()}.svg`;
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
   });
 });
