@@ -8,23 +8,16 @@
  */
 
 import {
-  GraphQLSchema as Schema,
   GraphQLObjectType as ObjectType,
+  GraphQLString as StringType,
+  GraphQLNonNull as NonNull,
 } from 'graphql';
 
-import me from './queries/me';
-import news from './queries/news';
-import paths from './queries/paths';
-
-const schema = new Schema({
-  query: new ObjectType({
-    name: 'Query',
-    fields: {
-      me,
-      news,
-      paths,
-    },
-  }),
+const PathType = new ObjectType({
+  name: 'Path',
+  fields: {
+    d: { type: new NonNull(StringType) }
+  },
 });
 
-export default schema;
+export default PathType;

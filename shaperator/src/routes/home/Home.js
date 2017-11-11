@@ -14,11 +14,9 @@ import s from './Home.css';
 
 class Home extends React.Component {
   static propTypes = {
-    news: PropTypes.arrayOf(
+    paths: PropTypes.arrayOf(
       PropTypes.shape({
-        title: PropTypes.string.isRequired,
-        link: PropTypes.string.isRequired,
-        content: PropTypes.string,
+        d: PropTypes.string.isRequired,
       }),
     ).isRequired,
   };
@@ -27,18 +25,11 @@ class Home extends React.Component {
     return (
       <div className={s.root}>
         <div className={s.container}>
-          <h1>React.js News</h1>
-          {this.props.news.map(item => (
-            <article key={item.link} className={s.newsItem}>
-              <h1 className={s.newsTitle}>
-                <a href={item.link}>{item.title}</a>
-              </h1>
-              <div
-                className={s.newsDesc}
-                // eslint-disable-next-line react/no-danger
-                dangerouslySetInnerHTML={{ __html: item.content }}
-              />
-            </article>
+          <h1>Shaperator</h1>
+          {this.props.paths.map(path => (
+            <svg width="350" height="350" viewBox="0 0 350 350">
+              <path d={path.d} fill="#121212" />
+            </svg>
           ))}
         </div>
       </div>
