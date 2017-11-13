@@ -5,26 +5,7 @@ let colorBackground = true;
 let shiftDown = false;
 let controlDown = false;
 let altDown = false;
-
-function generatePath() {
-  $('.lloader').fadeIn();
-  $('.error').hide();
-  $('.svgs-container').hide();
-  $.ajax({
-    url: 'https://41bc3972.ngrok.io/generate',
-    type: 'GET',
-    success: function(response) {
-      $('.lloader').hide();
-      $('.svgs-container').show();
-      drawPaths(response.paths);
-    },
-    error: function(error) {
-      $('.lloader').hide();
-      $('.error').fadeIn();
-      $('.svgs-container').fadeIn();
-    }
-  }).done();
-}
+let shapeOffset = 0;
 
 function customClick(draw) {
   if (altDown) {
@@ -45,17 +26,38 @@ function rotate(draw) {
 }
 
 function drawPaths(data) {
-  if (Array.isArray(data)) {
-    $('#svgs').empty();
-    for (let i = 0; i < data.length; i++) {
-      const currentPath = data[i];
-      const _draw = SVG('svgs').size(350, 350);
-      _draw.rect(350, 350).fill(tinycolor.random().toHexString()).move(0, 0);
+  $('#svgs').empty();
+  for (let i = 0; i < data.length; i++) {
+    const currentPath = data[i];
+    const _draw = SVG('svgs').size(350, 350);
+    const color = tinycolor.random().toHexString();
+    const white = '#ffffff';
+    const noBg = math.randomInt(1);
+
+    if (i % 2 == noBg) {
+      _draw.rect(350, 350).fill(color).move(0, 0);
       _draw.click(function() { customClick(this); });
       _draw.mousemove(function(e) { updateColor(this.node, e); });
 
       const _drawnPath = _draw.path(currentPath);
-      _drawnPath.fill('#ffffff');
+      _drawnPath.fill(white);
+      bb = _drawnPath.bbox();
+
+      const widthScale = maxScale / (bb.w / _draw.width());
+      const heightScale = maxScale / (bb.h / _draw.height());
+      _drawnPath.scale(widthScale, heightScale);
+      bb = _drawnPath.bbox();
+
+      const xMove = _drawnPath.transform().x + ((_draw.width() - bb.w) / 2) - bb.x;
+      const yMove =  _drawnPath.transform().y + ((_draw.height() - bb.h) / 2) - bb.y;
+      _drawnPath.translate(xMove, yMove);
+    } else {
+      _draw.rect(350, 350).fill(white).move(0, 0);
+      _draw.click(function() { customClick(this); });
+      _draw.mousemove(function(e) { updateColor(this.node, e); });
+
+      const _drawnPath = _draw.path(currentPath);
+      _drawnPath.fill(color);
       bb = _drawnPath.bbox();
 
       const widthScale = maxScale / (bb.w / _draw.width());
@@ -67,25 +69,6 @@ function drawPaths(data) {
       const yMove =  _drawnPath.transform().y + ((_draw.height() - bb.h) / 2) - bb.y;
       _drawnPath.translate(xMove, yMove);
     }
-  }
-  else {
-    _draw = SVG('svgs').size(350, 350);
-    _draw.rect(350, 350).fill(tinycolor.random().toHexString()).move(0, 0);
-    _draw.click(function() { customClick(this); });
-    _draw.mousemove(function(e) { updateColor(this.node, e); });
-
-    _drawnPath = _draw.path(data);
-    _drawnPath.fill('#ffffff');
-    bb = _drawnPath.bbox();
-
-    const widthScale = maxScale / (bb.w / _draw.width());
-    const heightScale = maxScale / (bb.h / _draw.height());
-    _drawnPath.scale(widthScale, heightScale);
-    bb = _drawnPath.bbox();
-
-    const xMove = _drawnPath.transform().x + ((_draw.width() - bb.w) / 2) - bb.x;
-    const yMove =  _drawnPath.transform().y + ((_draw.height() - bb.h) / 2) - bb.y;
-    _drawnPath.translate(xMove, yMove);
   }
 }
 
@@ -173,25 +156,26 @@ function swapColors(svg) {
   });
 }
 
-$(function() {
-  $('.svgs-container').hide();
-  $('.lloader').show();
+function pollShapes() {
+  console.log("Polling for new shapes...");
   $.ajax({
     url: 'https://41bc3972.ngrok.io',
     type: 'GET'
   }).done(function(response) {
-    $('.lloader').hide();
-    $('.svgs-container').show();
     drawPaths(response.paths);
   });
+}
 
-  $('.generate').click(function() {
-    generatePath();
-  });
+$(function() {
+  pollShapes();
 
   $(document).on('keyup keydown', function(e) {
     shiftDown = e.shiftKey;
     altDown = e.altKey;
     controlDown = e.ctrlKey;
   });
+
+  setInterval(function() {
+    pollShapes();
+  }, 1000 * 60 * 10);
 });
