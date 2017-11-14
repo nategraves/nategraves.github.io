@@ -12,7 +12,7 @@ function customClick(draw) {
     save(draw.node);
     return;
   } else if (shiftDown) {
-    rotate(draw);
+    //rotate(draw);
     return;
   } else if (!controlDown && !altDown && !shiftDown) {
     swapColors(draw.node);
@@ -20,7 +20,13 @@ function customClick(draw) {
   } 
 }
 
-function rotate(draw) {
+function rotate(e, draw) {
+  var el = $(e.srcElement || e.target);
+  var offset = el.offset();
+  var x = parseInt((e.pageX - offset.left) / width, 10);
+  var y = parseInt((e.pageY - offset.top) / height, 10);
+  console.log(`X: ${x}, Y: ${y}`);
+
   const path = draw.last();
   path.transform({ rotation: 90}, true);
 }
@@ -54,7 +60,7 @@ function drawPaths(data) {
     } else {
       _draw.rect(350, 350).fill(white).move(0, 0);
       _draw.click(function() { customClick(this); });
-      _draw.mousemove(function(e) { updateColor(this.node, e); });
+      _draw.mousemove(function(e) { updateColor(this, e); });
 
       const _drawnPath = _draw.path(currentPath);
       _drawnPath.fill(color);
@@ -94,32 +100,39 @@ function save(svg) {
   document.body.removeChild(downloadLink);
 }
 
-function updateColor(svg, e) {
-  if (!controlDown) return;
-  var el = $(e.srcElement || e.target);
-  var offset = el.offset();
-  var width = ($(svg).width()) / 360;
-  var height = ($(svg).height()) / 100;
-  var h = parseInt((e.pageX - offset.left) / width, 10);
-  var s = parseInt((e.pageY - offset.top) / height, 10);
-  var v = (h + s) / 2;
-  var color = tinycolor({ h, s, v });
+function updateColor(draw, e) {
+  console.log(shiftDown);
+  if (controlDown) {
+    var el = $(e.srcElement || e.target);
+    var offset = el.offset();
+    var width = ($(svg).width()) / 360;
+    var height = ($(svg).height()) / 100;
+    var h = parseInt((e.pageX - offset.left) / width, 10);
+    var s = parseInt((e.pageY - offset.top) / height, 10);
+    var v = (h + s) / 2;
+    var color = tinycolor({ h, s, v });
 
-  var path = svg.childNodes.forEach((node) => {
-    if (colorBackground && node.constructor.name === "SVGRectElement") {
-      node.setAttribute("fill", `#${color.toHex()}`);
-    }
-    if (colorBackground && node.constructor.name === "SVGPathElement") {
-      node.setAttribute("fill", '#ffffff');
-    }
+    var path = svg.childNodes.forEach((node) => {
+      if (colorBackground && node.constructor.name === "SVGRectElement") {
+        node.setAttribute("fill", `#${color.toHex()}`);
+      }
+      if (colorBackground && node.constructor.name === "SVGPathElement") {
+        node.setAttribute("fill", '#ffffff');
+      }
 
-    if (!colorBackground && node.constructor.name === "SVGRectElement") {
-      node.setAttribute("fill", '#ffffff');
-    }
-    if (!colorBackground && node.constructor.name === "SVGPathElement") {
-      node.setAttribute("fill", `#${color.toHex()}`);
-    }
-  });
+      if (!colorBackground && node.constructor.name === "SVGRectElement") {
+        node.setAttribute("fill", '#ffffff');
+      }
+      if (!colorBackground && node.constructor.name === "SVGPathElement") {
+        node.setAttribute("fill", `#${color.toHex()}`);
+      }
+    });
+  }
+  
+  if (shiftDown) {
+    console.log("rotate");
+    rotate(e, draw);
+  }
 }
 
 function swapColors(svg) {
