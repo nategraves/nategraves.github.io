@@ -6,6 +6,7 @@ let shiftDown = false;
 let controlDown = false;
 let altDown = false;
 let shapeOffset = 0;
+const URL = 'https://2dc4e226.ngrok.io';
 
 function customClick(draw) {
   if (altDown) {
@@ -159,7 +160,7 @@ function swapColors(svg) {
 function pollShapes() {
   console.log("Polling for new shapes...");
   $.ajax({
-    url: 'https://41bc3972.ngrok.io',
+    url: URL,
     type: 'GET'
   }).done(function(response) {
     drawPaths(response.paths);
