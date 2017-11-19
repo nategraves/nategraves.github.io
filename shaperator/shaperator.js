@@ -6,6 +6,7 @@ let shiftDown = false;
 let controlDown = false;
 let altDown = false;
 let shapeOffset = 0;
+let currentPaths = [];
 const URL = 'https://699de3fa.ngrok.io';
 
 function customClick(draw) {
@@ -31,10 +32,10 @@ function rotate(e, draw) {
   path.transform({ rotation: 90}, true);
 }
 
-function drawPaths(data) {
+function drawPaths() {
   $('#svgs').empty();
-  for (let i = 0; i < data.length; i++) {
-    const currentPath = data[i];
+  for (let i = 0; i < currentPaths.length; i++) {
+    const currentPath = currentPaths[i];
     const _draw = SVG('svgs').size(350, 350);
     const color = tinycolor.random().toHexString();
     const white = '#ffffff';
@@ -172,7 +173,10 @@ function pollShapes() {
     url: URL,
     type: 'GET'
   }).done(function(response) {
-    drawPaths(response.paths);
+    if (response.paths != currentPaths) {
+      currentPaths = response.paths;
+      drawPaths();
+    }
   });
 }
 
