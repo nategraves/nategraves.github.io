@@ -26,7 +26,6 @@ function rotate(e, draw) {
   var offset = el.offset();
   var x = parseInt((e.pageX - offset.left) / width, 10);
   var y = parseInt((e.pageY - offset.top) / height, 10);
-  console.log(`X: ${x}, Y: ${y}`);
 
   const path = draw.last();
   path.transform({ rotation: 90}, true);
@@ -102,7 +101,6 @@ function save(svg) {
 }
 
 function updateColor(draw, e) {
-  console.log(shiftDown);
   if (controlDown) {
     var el = $(e.srcElement || e.target);
     var offset = el.offset();
@@ -131,7 +129,6 @@ function updateColor(draw, e) {
   }
   
   if (shiftDown) {
-    console.log("rotate");
     rotate(e, draw);
   }
 }
@@ -171,7 +168,6 @@ function swapColors(svg) {
 }
 
 function pollShapes() {
-  console.log("Polling for new shapes...");
   $.ajax({
     url: URL,
     type: 'GET'
@@ -191,5 +187,5 @@ $(function() {
 
   setInterval(function() {
     pollShapes();
-  }, 1000 * 60 * 10);
+  }, 1000 * 30);
 });
