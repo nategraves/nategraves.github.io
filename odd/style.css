@@ -1,0 +1,235 @@
+@font-face {
+  font-family: "Courier Bold";
+  src: url("Courier Final Draft Bold.TTF") format("woff2");
+  font-weight: bold;
+}
+
+html,
+body {
+  font-family: Courier, serif;
+  font-size: 16px;
+  height: 100%;
+  line-height: 1.25;
+  margin: 0;
+  min-height: 100vh;
+  padding: 0;
+  position: relative;
+  width: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  padding: 10px;
+  background: #C68D9E;
+  text-align: center;
+}
+
+header span {
+  display: inline-block;
+  text-transform: uppercase;
+  width: calc(100vw - 33.25rem);
+}
+
+header .logo {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 16.625rem;
+}
+
+.left-nav {
+  display: flex;
+  flex-direction: column;
+  left: 2rem;
+  height: 600px;
+  position: fixed;
+  top: 50px;
+  width: 200px;
+  z-index: 1;
+}
+
+.left-nav .shop-nav {
+  flex: 0 1 auto;
+  font-size: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.left-nav .top-level {
+  font-size: 1.125rem;
+  font-weight: bold;
+}
+
+.left-nav .top-level li {
+  padding: 0.25rem 0.5rem;
+  margin: 0.25rem 0;
+}
+
+.left-nav .top-level li a {
+  color: #000;
+}
+
+.left-nav .top-level li.active {
+  background: #000;
+}
+
+.left-nav .top-level li.active a {
+  color: #b8d406;
+}
+
+.left-nav .sub-level {
+  flex: 1 1 auto;
+  font-size: 1rem;
+  font-weight: normal;
+  margin-left: 0.5rem;
+}
+
+.left-nav .sub-level li {
+  padding: 0.25rem 0.5rem;
+  margin: 0.25rem 0;
+}
+
+.left-nav .sub-level li a {
+  color: #000;
+}
+
+.left-nav .sub-level li.active {
+  background-color: rgba(0, 0, 0, 0.75);
+}
+
+.left-nav .sub-level li.active a {
+  color: #b8d406;
+}
+
+.right-nav {
+  padding: 0 1rem;
+  position: fixed;
+  right: 0;
+  top: 50px;
+  width: 50px;
+}
+
+.main {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.content-section {
+  align-items: flex-end;
+  background: url('content1.png');
+  display: flex;
+  height: 44.375rem;
+  justify-content: flex-end;
+  margin-bottom: 2rem;
+  width: 73.125rem; 
+}
+
+.content-section.alt.right,
+.content-section.alt.left {
+  background: transparent;
+  height: 27.875rem;
+}
+
+.alt.left .content {
+  flex: 1 1 auto;
+  margin-bottom: 2rem;
+}
+
+.alt.left .col,
+.alt.right .col {
+  align-items: flex-end;
+  background-image: url('content-big-side.png');
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  display: flex;
+  flex: 1 1 66.6667%;
+  flex-direction: column;
+  height: 27.875rem;
+  justify-content: flex-end;
+}
+
+.alt.left .col:last-of-type,
+.alt.right .col:first-of-type {
+  background-image: url('content-small-side.png');
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  display: flex;
+  flex: 1 1 33.3333%;
+  height: 27.875rem;
+}
+
+.content-section h1 {
+  color: #fff;
+  font-family: 'Roboto', sans-serif;
+  font-size: 3.75rem;
+  line-height: 1;
+  margin-bottom: 3rem;
+}
+
+.content-section .content {
+  flex: 0 1 800px;
+  margin: 0 4rem 2rem 0;
+}
+
+.btn-primary {
+  background: #000;
+  border-radius: 0;
+  padding: 0.625rem 1.5rem;
+  text-decoration: underline;
+}
+
+.product-section {
+  margin-bottom: 2rem;
+  width: 73.125rem; 
+}
+
+.product-image img {
+  width: 100%;
+}
+
+.product-info {
+  margin-top: 1rem;
+  text-align: right;
+}
+
+.product-info a.designer {
+  cursor: pointer;
+  display: block;
+  font-size: 1rem;
+  font-weight: bold;
+  line-height: 1.5;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.product-info a.title {
+  color: #7a7a7a;
+  cursor: pointer;
+  display: block;
+  font-size: 0.875rem;
+  font-weight: normal;
+  line-height: 1.5;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.product-info a.title:hover {
+  color: #7a7a7a;
+}
+
+.product-info a.price {
+  cursor: pointer;
+  display: block;
+  font-size: 0.875rem;
+  font-weight: normal;
+  line-height: 1.5;
+}
