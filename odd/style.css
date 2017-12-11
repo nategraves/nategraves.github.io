@@ -139,6 +139,9 @@ header .logo {
 
 .content-section.alt.center {
   background: url('content-big-side.png');
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
   height: 27.875rem;
 }
 
