@@ -137,6 +137,15 @@ header .logo {
   height: 27.875rem;
 }
 
+.content-section.alt.center {
+  background: url('content-big-side.png');
+  height: 27.875rem;
+}
+
+.alt.center .col {
+  background: transparent;
+}
+
 .alt.left .content {
   flex: 1 1 auto;
   margin-bottom: 2rem;
