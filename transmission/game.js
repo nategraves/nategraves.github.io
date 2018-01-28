@@ -1,8 +1,7 @@
 const _gameWidth = 1000;
 const _gameHeight = 700;
-const _axisMin = 0.05;
-const _leftFlagOrigin = { x: 150, y: 585 };
-const _rightFlagOrigin = { x: 220, y: 585 };
+const _leftFlagOrigin = { x: 170, y: 585 };
+const _rightFlagOrigin = { x: 150, y: 585 };
 const _maxFlagDistance = 75;
 const _fudge = 0.1;
 const _lpositions = {
@@ -67,10 +66,10 @@ function create() {
   _friend.alpha = 0.5;
 
   _leftFlag = _game.add.sprite(_leftFlagOrigin.x, _leftFlagOrigin.y, 'flagLeft');
-  _leftFlag.anchor.setTo(0.5, 1);
+  _leftFlag.anchor.setTo(1, 1);
 
   _rightFlag = _game.add.sprite(_rightFlagOrigin.x, _rightFlagOrigin.y, 'flagRight');
-  _rightFlag.anchor.setTo(0.5, 1);
+  _rightFlag.anchor.setTo(-1, 1);
 
   _flags = _game.add.group();
   _flags.add(_leftFlag);
@@ -85,7 +84,9 @@ function create() {
   ); 
 
   _pad = _game.input.gamepad.pad1;
-  _pad.onConnect = listenerSetup();
+  _pad.onConnect = listenerSetup;
+
+  _game.input.keyboard.onPressCallback = keypressHandler;
 
   _game.input.gamepad.start();
 }
@@ -104,6 +105,20 @@ function listenerSetup() {
   rightTriggerButton.onFloat.add(onRightTrigger);
 }
 
+function keypressHandler(char) {
+  const pos = alphaToFlag(char);
+
+  if (pos === '') return;
+
+  const leftPos = _lpositions[pos.substr(0, 2)];
+  const rightPos = _rpositions[pos.substr(2, 2)];
+
+  _leftFlag.position.x = _leftFlagOrigin.x + (leftPos.X * _maxFlagDistance);
+  _leftFlag.position.y = _leftFlagOrigin.y + (leftPos.Y * _maxFlagDistance);
+  _rightFlag.position.x = _rightFlagOrigin.x + (rightPos.X * _maxFlagDistance);
+  _rightFlag.position.y = _rightFlagOrigin.y + (rightPos.Y * _maxFlagDistance);
+}
+
 function onLeftTrigger(button, value) {
   _leftFlag.angle = -value * 180;
 }
@@ -113,40 +128,44 @@ function onRightTrigger(buttonCode, value) {
 }
 
 function flagToAlpha(lx, ly, rx, ry) {
-  let responseKey = '';
+  let responseLeft = '';
+  let responseRight = '';
 
-  for (const key in _lpositions) {
-    const { X, Y } = _lpositions[key];
-    if (X - _fudge < lx > X + _fudge && Y - _fudge < ly > Y + _fudge) {
-      responseKey += key;
+  for (const lkey in _lpositions) {
+    const { X, Y } = _lpositions[lkey];
+    if (X - _fudge > lx < X + _fudge && Y - _fudge > ly < Y + _fudge) {
+      console.log(lkey);
+      responseLeft = lkey;
       break;
     }
   }
 
-  for (const key in _rpositions) {
-    const { X, Y } = _rpositions[key];
-    if (X - _fudge < lx > X + _fudge && Y - _fudge < ly > Y + _fudge) {
-      responseKey += key;
+  for (const rkey in _rpositions) {
+    const { X, Y } = _rpositions[rkey];
+    if (X - _fudge > rx < X + _fudge && Y - _fudge > ry < Y + _fudge) {
+      responseRight = rkey;
       break;
     }
   }
 
   let char;
   if (_numeralMode) {
-    char = _numerals[responseKey];
+    char = _numerals[`${responseLeft} + ${responseRight}`] || '';
   } else {
-    char = _alphabet[responseKey];
-    if (char === '#') _numeralMode = !_numeralMode;
+    char = _alphabet[`${responseLeft} + ${responseRight}`] || '';
+    //if (char === '#') _numeralMode = !_numeralMode;
   }
 
-  return char || '';
+  return ;
 }
 
-/*
 function alphaToFlag(char) {
+  let inverted = _.invert(_alphabet);
 
+  if (_numeralMode) inverted = _.invert(_numerals);
+  
+  return inverted[char.toUpperCase()] || '';
 }
-*/
 
 function handleInput() {
   _leftStickX = _pad.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X || 0);
@@ -155,12 +174,12 @@ function handleInput() {
   _rightStickX = _pad.axis(Phaser.Gamepad.XBOX360_STICK_RIGHT_X) || 0;
   _rightStickY = _pad.axis(Phaser.Gamepad.XBOX360_STICK_RIGHT_Y) || 0;
 
-  _rightTrigger = _pad.axis(Phaser.Gamepad.XBOX360_RIGHT_TRIGGER);
-  _leftTrigger = _pad.axis(Phaser.Gamepad.XBOX360_LEFT_TRIGGER);
+  _rightTrigger = _pad.axis(Phaser.Gamepad.XBOX360_RIGHT_TRIGGER) || 0;
+  _leftTrigger = _pad.axis(Phaser.Gamepad.XBOX360_LEFT_TRIGGER) || 0;
 }
 
 function moveFlags() {
-  if (Math.abs(_rightStickX) > _axisMin) {
+  if (Math.abs(_rightStickX) > 0) {
     _rightFlag.x = _rightFlagOrigin.x + (_rightStickX * _maxFlagDistance);
   } else {
     _rightFlag.x = _rightFlagOrigin.x;
@@ -186,14 +205,16 @@ function moveFlags() {
 }
 
 function updateTxt() {
-  _myChar = flagToAlpha(_leftStickX, _leftStickY, _rightStickX, _rightStickY);
-  _myTxt.text = _myChar;
+  if (_leftStickX === 0 && _leftStickY === 0 && _rightStickX === 0 && _rightStickY === 0) {
+    _myChar = flagToAlpha(_leftStickX, _leftStickY, _rightStickX, _rightStickY);
+    if (_myTxt) _myTxt.text = _myChar;
+  }
 }
 
 function update() {
   if (_pad.connected) {
     handleInput();
-    moveFlags();
     updateTxt();
+    //moveFlags();
   }
 }
