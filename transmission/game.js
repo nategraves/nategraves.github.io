@@ -1,7 +1,8 @@
+const debug = true;
 const _gameWidth = 1000;
 const _gameHeight = 700;
-const _leftFlagOrigin = { x: 170, y: 585 };
-const _rightFlagOrigin = { x: 150, y: 585 };
+const _leftFlagOrigin = { x: 180, y: 590 };
+const _rightFlagOrigin = { x: 140, y: 590 };
 const _maxFlagDistance = 75;
 const _fudge = 0.1;
 const _lpositions = {
@@ -27,8 +28,8 @@ const _alphabet = {
   l1r4: 'E', l1r3: 'F', l1r2: 'G', l3r6: 'H', l4r6: 'I',
   l5r3: 'J', l2r5: 'K', l2r4: 'L', l2r3: 'M', l2r2: 'N',
   l4r7: 'O', l3r5: 'P', l3r4: 'Q', l3r3: 'R', l3r2: 'S',
-  l4r1: 'T', l4r4: 'U', l5r2: 'V', l7r4: 'W', l6r4: 'X',
-  l4r3: 'Y', l6r3: 'Y', l5r4: '#', l4r1: '>' 
+  l4r5: 'T', l4r4: 'U', l5r2: 'V', l7r4: 'W', l6r4: 'X',
+  l4r3: 'Y', l6r3: 'Z', l5r4: '#' 
 };
 const _numerals = {
   l2r1: '1', l3r1: '2', l4r1: '3', l5r1: '4', l1r4: '5',
@@ -40,6 +41,7 @@ const _game = new Phaser.Game(
 )
 
 let _numeralMode = false;
+let _typing = false;
 let _myChar = '';
 let _myTxt = '';
 let _urChar = '';
@@ -74,6 +76,7 @@ function create() {
   _flags = _game.add.group();
   _flags.add(_leftFlag);
   _flags.add(_rightFlag);
+  _flags.visible = false;
 
   _game.world.bringToTop(_friend);
 
@@ -105,25 +108,55 @@ function listenerSetup() {
   rightTriggerButton.onFloat.add(onRightTrigger);
 }
 
+function resetFlags() {
+  if (debug) console.log("Resetting flags");
+
+  _typing = false;
+
+  if (_leftFlag.x !== _leftFlagOrigin.x || _leftFlag.y !== _leftFlagOrigin.y) {
+    _game.add.tween(_leftFlag.position).to({
+      x: _leftFlagOrigin.x,
+      y: _leftFlagOrigin.y
+    }, 300, Phaser.Easing.Cubic.In, true);
+  }
+
+  if (_rightFlag.x !== _rightFlagOrigin.x || _rightFlag.y !== _rightFlagOrigin.y) {
+    _game.add.tween(_rightFlag.position).to({
+      x: _rightFlagOrigin.x,
+      y: _rightFlagOrigin.y
+    }, 300, Phaser.Easing.Cubic.In, true);
+  }
+}
+
 function keypressHandler(char) {
+  if (debug) console.log(`Pressed: ${char}`);
   const pos = alphaToFlag(char);
+  if (debug) console.log(`Got pos: ${pos}`);
 
   if (pos === '') return;
+  _typing = window.setTimeout(resetFlags, 1500);
 
   const leftPos = _lpositions[pos.substr(0, 2)];
   const rightPos = _rpositions[pos.substr(2, 2)];
 
-  _leftFlag.position.x = _leftFlagOrigin.x + (leftPos.X * _maxFlagDistance);
-  _leftFlag.position.y = _leftFlagOrigin.y + (leftPos.Y * _maxFlagDistance);
-  _rightFlag.position.x = _rightFlagOrigin.x + (rightPos.X * _maxFlagDistance);
-  _rightFlag.position.y = _rightFlagOrigin.y + (rightPos.Y * _maxFlagDistance);
+  _game.add.tween(_leftFlag.position).to({
+    x: _leftFlagOrigin.x + (leftPos.X * _maxFlagDistance),
+    y: _leftFlagOrigin.y + (leftPos.Y * _maxFlagDistance)
+  }, 300, Phaser.Easing.Cubic.Out, true);
+
+  _game.add.tween(_rightFlag.position).to({
+    x: _rightFlagOrigin.x + (rightPos.X * _maxFlagDistance),
+    y: _rightFlagOrigin.y + (rightPos.Y * _maxFlagDistance)
+  }, 300, Phaser.Easing.Cubic.Out, true);
 }
 
 function onLeftTrigger(button, value) {
+  if (debug) console.log(`Setting left angle to ${-value * 180}`);
   _leftFlag.angle = -value * 180;
 }
 
 function onRightTrigger(buttonCode, value) {
+  if (debug) console.log(`Setting right angle to ${value * 180}`);
   _rightFlag.angle = value * 180;
 }
 
@@ -160,11 +193,14 @@ function flagToAlpha(lx, ly, rx, ry) {
 }
 
 function alphaToFlag(char) {
-  let inverted = _.invert(_alphabet);
+  const key = char.toUpperCase();
+  if (debug) console.log(`Getting flag position for ${key}`);
 
+  let inverted = _.invert(_alphabet);
   if (_numeralMode) inverted = _.invert(_numerals);
-  
-  return inverted[char.toUpperCase()] || '';
+  const response = inverted[key];
+
+  return response || '';
 }
 
 function handleInput() {
@@ -179,28 +215,11 @@ function handleInput() {
 }
 
 function moveFlags() {
-  if (Math.abs(_rightStickX) > 0) {
-    _rightFlag.x = _rightFlagOrigin.x + (_rightStickX * _maxFlagDistance);
-  } else {
-    _rightFlag.x = _rightFlagOrigin.x;
-  }
-
-  if (Math.abs(_rightStickY) > 0) {
-    _rightFlag.y = _rightFlagOrigin.y + (_rightStickY * _maxFlagDistance);
-  } else {
-    _rightFlag.y = _rightFlagOrigin.y;
-  }
-
-  if (Math.abs(_leftStickX) > 0) {
-    _leftFlag.x = _leftFlagOrigin.x + (_leftStickX * _maxFlagDistance);
-  } else {
-    _leftFlag.x = _leftFlagOrigin.x;
-  }
-
-  if (Math.abs(_leftStickY) > 0) {
-    _leftFlag.y = _leftFlagOrigin.y + (_leftStickY * _maxFlagDistance);
-  } else {
-    _leftFlag.y = _leftFlagOrigin.y;
+  if (!_typing) {
+    _rightFlag.position.x = _rightFlagOrigin.x + (_rightStickX * _maxFlagDistance);
+    _rightFlag.position.y = _rightFlagOrigin.y + (_rightStickY * _maxFlagDistance);
+    _leftFlag.position.x = _leftFlagOrigin.x + (_leftStickX * _maxFlagDistance);
+    _leftFlag.position.y = _leftFlagOrigin.y + (_leftStickY * _maxFlagDistance);
   }
 }
 
@@ -213,8 +232,14 @@ function updateTxt() {
 
 function update() {
   if (_pad.connected) {
+    _flags.visible = true;
+  } else {
+    _flags.visible = false
+  }
+
+  if (_flags.visible) {
     handleInput();
     updateTxt();
-    //moveFlags();
+    moveFlags();
   }
 }
