@@ -69,7 +69,8 @@ function draw() {
   noStroke();
   this.currentColor.setAlpha(256);
   fill(this.currentColor);
-  rect(mousePosition.x - 6, mousePosition.y - 6, 12, 12);
+  const previewSize = 20;
+  rect(mousePosition.x - (previewSize / 2), mousePosition.y - (previewSize / 2), previewSize, previewSize);
 
   if (drawing) {
     const particle = new Particle(mousePosition, speed, this.currentColor);
