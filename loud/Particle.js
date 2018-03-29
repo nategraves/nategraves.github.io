@@ -1,8 +1,17 @@
 class Particle {
-  constructor(position) {
+  static randomColor() {
+    const r = Math.round(Math.random() * 255);
+    const g = Math.round(Math.random() * 255);
+    const b = Math.round(Math.random() * 255);
+    return color(r, b, g);
+  }
+
+  constructor(position, speed, color) {
     this.position = position.copy();
-    this.direction = createVector(random(-5, 5), random(-5, 5));
+    this.speed = createVector(random(-speed, speed), random(-speed, speed));
+    this.color = color;
     this.lifespan = 255.0;
+    //this.size = 12 + (octave - maxOctave)
   }
 
   get isDead() {
@@ -19,15 +28,27 @@ class Particle {
   }
 
   move() {
-    this.direction.add(this.acceleration);
-    this.position.add(this.direction);
+    this.position.add(this.speed);
     this.lifespan -= 5;
+
+    if (this.speed.x > 0) {
+      this.speed.x += -0.1;
+    } else if (this.speed.x < 0) {
+      this.speed.x += 0.1;
+    }
+
+    if (this.speed.y > 0) {
+      this.speed.y += -0.1;
+    } else if (this.speed.y < 0) {
+      this.speed.y += 0.1;
+    }
   }
 
   display() {
-    stroke(200, this.lifespan);
-    strokeWeight(2);
-    fill(127, this.lifespan);
-    ellipse(this.position.x, this.position.y, 12, 12);
+    noStroke();
+    this.color.setAlpha(this.lifespan);
+    fill(this.color);
+    rect(this.position.x, this.position.y, 12, 12);
+    //ellipse(this.position.x, this.position.y, 12, 12);
   }
 }
