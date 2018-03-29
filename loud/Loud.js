@@ -71,7 +71,7 @@ function draw() {
   fill(this.currentColor);
   const previewSize = 30;
   //rect(mousePosition.x - (previewSize / 2), mousePosition.y - (previewSize / 2), previewSize, previewSize);
-  ellipse(mousePosition.x - (previewSize / 2), mousePosition.y - (previewSize / 2), previewSize, previewSize);
+  ellipse(mousePosition.x, mousePosition.y, previewSize, previewSize);
 
   if (drawing) {
     const particle = new Particle(mousePosition, speed, this.currentColor);
