@@ -1,11 +1,4 @@
 class Particle {
-  static randomColor() {
-    const r = Math.round(Math.random() * 255);
-    const g = Math.round(Math.random() * 255);
-    const b = Math.round(Math.random() * 255);
-    return color(r, b, g);
-  }
-
   constructor(position, speed, color) {
     this.position = position.copy();
     this.speed = createVector(random(-speed, speed), random(-speed, speed));

@@ -1,4 +1,4 @@
-const noteStems = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+const noteStems = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const freqs = [16.35, 17.32, 18.35, 19.45, 20.6, 21.83, 23.12, 24.5, 25.96, 27.5, 29.14, 30.87];
 const maxOctave = 7;
 const minOctave = 1;
@@ -36,6 +36,8 @@ function setup() {
       notes.push(noteStems[i] + octave);
       colors.push(this.randomColor());
     }
+    notes.sort();
+    console.log(notes);
   }
 
   notes.sort();
@@ -49,21 +51,36 @@ function mouseReleased() {
   drawing = false;
 }
 
+function drawPads() {
+  for (let i = 0; i < notes.length; i++) {
+    const div = document.createElement('div');
+    div.style = `background-color: ${colors[i].toString()}`;
+    div.classList.add('tone');
+    const canvas = document.getElementsByTagName('body')[0];
+    canvas.appendChild(div);
+  }
+  debugger;
+}
+
+function drawParticles() {
+  if (particles.length > 0) {
+    particles.forEach((particle) => particle.update());
+  }
+}
+
 function draw() {
   background(255);
   smooth();
   mousePosition = createVector(mouseX, mouseY);
 
-  if (particles.length > 0) {
-    particles.forEach((particle) => particle.update());
-  }
+  this.drawPads();
+  this.drawParticles();
 
   const noteIndex = Math.round((mouseX / width) * (noteStems.length - 1));
   note = noteStems[noteIndex];
   octave = Math.round((mouseY / height) * (maxOctave - minOctave)) + 1;
   const noteFinal = note + octave;
   const speed = (2 + octave) / 2;
-  console.log(noteFinal);
 
   this.currentColor = colors[ notes.indexOf(noteFinal) ];
   noStroke();
