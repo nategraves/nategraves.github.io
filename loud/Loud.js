@@ -16,6 +16,9 @@ let drawing = false;
 let currentColor;
 let mousePosition;
 let prevPos;
+let width, height;
+let canvas, canvasRect;
+let padWidth, padHeight;
 
 function randomColor() {
   const r = Math.round(Math.random() * 255);
@@ -27,8 +30,13 @@ function randomColor() {
 function setup() {
   synth = new Tone.AMSynth().toMaster();
   synth.volumne = -10;
-  const width = window.innerWidth;
-  const height = window.innerHeight;
+
+  canvas = document.getElementsByTagName('body')[0];
+  canvasRect = canvas.getBoundingClientRect();
+  width = canvasRect.width;
+  height = canvasRect.height;
+  padWidth = width / noteStems.length;
+  padHeight = height / totalOctaves;
   createCanvas(width, height);
 
   for (let octave = 1; octave <= maxOctave; octave++) {
@@ -36,8 +44,6 @@ function setup() {
       notes.push(noteStems[i] + octave);
       colors.push(this.randomColor());
     }
-    notes.sort();
-    console.log(notes);
   }
 
   notes.sort();
@@ -52,14 +58,18 @@ function mouseReleased() {
 }
 
 function drawPads() {
-  for (let i = 0; i < notes.length; i++) {
-    const div = document.createElement('div');
-    div.style = `background-color: ${colors[i].toString()}`;
-    div.classList.add('tone');
-    const canvas = document.getElementsByTagName('body')[0];
-    canvas.appendChild(div);
+  for (let octave = minOctave; octave <= maxOctave; octave++) {
+    const base = (octave - 1) * noteStems.length;
+
+    for (let i = 0; i < noteStems.length; i++) {
+      const noteStem = noteStems[i];
+      const color = colors[base + i];
+      color.setAlpha(256);
+      noStroke();
+      fill(color);
+      const pad = rect(i * padWidth, (octave - 1) * padHeight, padWidth, padHeight);
+    }
   }
-  debugger;
 }
 
 function drawParticles() {
@@ -72,13 +82,17 @@ function draw() {
   background(255);
   smooth();
   mousePosition = createVector(mouseX, mouseY);
+  canvas = document.getElementsByTagName('body')[0];
+  canvasRect = canvas.getBoundingClientRect();
+  width = canvasRect.width;
+  height = canvasRect.height;
 
   this.drawPads();
   this.drawParticles();
 
-  const noteIndex = Math.round((mouseX / width) * (noteStems.length - 1));
+  const noteIndex = Math.round(mouseX / padWidth);
   note = noteStems[noteIndex];
-  octave = Math.round((mouseY / height) * (maxOctave - minOctave)) + 1;
+  octave = Math.round(mouseY / padHeight) + 1;
   const noteFinal = note + octave;
   const speed = (2 + octave) / 2;
 
