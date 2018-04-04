@@ -16,11 +16,11 @@ class Particle {
   }
 
   update() {
-    this.move();
-    this.display();
+    this.prep();
+    this.draw();
   }
 
-  move() {
+  prep() {
     this.position.add(this.speed);
     this.lifespan -= 5;
 
@@ -37,7 +37,7 @@ class Particle {
     }
   }
 
-  display() {
+  draw() {
     noStroke();
     this.color.setAlpha(this.lifespan);
     fill(this.color);
