@@ -19,7 +19,7 @@ function setup() {
 
   prep();
 
-  processingCanvas = createCanvas(canvasRect.width - 100, canvasRect.height - 100);
+  processingCanvas = createCanvas(canvasRect.width, canvasRect.height);
   padManager = new PadManager(
     canvasRect,
     noteStems,
