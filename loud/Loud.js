@@ -5,20 +5,36 @@ const totalOctaves = maxOctave - minOctave;
 const totalNotes = totalOctaves * noteStems.length;
 const notes = [];
 
+let processingCanvas;
 let padManager;
 let synth;
 let octave;
 let drawing = false;
 let mousePosition;
+let counter = 0;
 
 function setup() {
   synth = new Tone.AMSynth().toMaster();
-  synth.volumne = -30;
+  synth.volumne = -10;
 
-  this.prep();
+  prep();
 
-  createCanvas(width, height);
-  padManager = new PadManager(canvasRect, noteStems, minOctave, maxOctave, synth);
+  processingCanvas = createCanvas(canvasRect.width - 100, canvasRect.height - 100);
+  padManager = new PadManager(
+    canvasRect,
+    noteStems,
+    minOctave,
+    maxOctave,
+    synth
+  );
+}
+
+function touchPressed() {
+  drawing = true;
+}
+
+function touchEnded() {
+  drawing = false;
 }
 
 function mousePressed() {
@@ -39,6 +55,15 @@ function prep() {
 }
 
 function draw() {
-  this.prep();
-  padManager.update(drawing, mousePosition);
+  counter++;
+  prep();
+  padManager.update(canvasRect, drawing, mousePosition);
+  if (counter % 100 === 0) {
+    //debugger;
+  }
+
+  if (!focused) {
+    synth.triggerRelease();
+    drawing = false;
+  }
 }

@@ -1,8 +1,8 @@
 const previewSize = 30;
 
 class Pad {
-  constructor(width, height, row, col, note, color) {
-    console.log("Pad");
+  constructor(padManager, width, height, row, col, note, color, synth) {
+    this.padManager = padManager;
     this.width = width;
     this.height = height;
     this.row = row;
@@ -10,64 +10,70 @@ class Pad {
     this.note = note;
     this.color = color;
     this.particles = [];
+    this.synth = synth;
+    this.speed = 1.25;
+    this.x = this.row * this.width;
+    this.y = this.col * this.height;
+    this.w  = this.width;
+    this.h = this.height;
+  }
 
-    /* Maybe i need the speed for the particles
-    const noteIndex = Math.round(mouseX / padWidth);
-    let note = noteStems[noteIndex];
-    octave = Math.round(mouseY / padHeight) + 1;
-    noteFinal = note + octave;
-    speed = (2 + octave) / 2;
-    */
-
+  toString() {
+    return [
+      `Width: ${this.width},\n`
+      `Height: ${this.height},\n`
+      `Row: ${this.row},\n`
+      `Note: ${this.note},\n`
+      `Color: ${this.color}`
+    ].join('');
   }
 
   update(drawing, mousePosition) {
-    this.prep();
+    this.prep(drawing, mousePosition);
     this.draw(drawing, mousePosition);
   }
 
-  prep(canvas) {
+  prep(drawing, mousePosition) {
+    this.x = this.row * this.width;
+    this.y = this.col * this.height;
+    this.w  = this.width;
+    this.h = this.height;
 
+    // Draw Pad Background
+    strokeWeight(5);
+    stroke(245);
+    fill(255);
+    rect(this.x, this.y, this.w, this.h);
   }
 
   draw(drawing, mousePosition) {
-    noStroke();
-    fill( this.color );
-    rect(row * this.width, col * this.height, this.width, this.height);
-     /*
-    for (let octave = minOctave; octave <= maxOctave; octave++) {
-      const base = (octave - 1) * noteStems.length;
+    if (
+      mousePosition.x > this.x && mousePosition.x < this.x + this.w &&
+      mousePosition.y > this.y && mousePosition.x < this.x + this.w
+    ) {
+      // Reset color 
+      const _color = this.color;
+      _color.setAlpha(255);
 
-      for (let i = 0; i < noteStems.length; i++) {
-        const noteStem = noteStems[i];
-        noStroke();
-        fill( colors[base + i] );
-        const pad = rect(i * padWidth, (octave - 1) * padHeight, padWidth, padHeight);
+      // Draw Mouse Cursor
+      noStroke();
+      fill(_color);
+      ellipse(mousePosition.x, mousePosition.y, 30, 30);
+
+      if (drawing) {
+        // Start playing the note
+        this.synth.setNote(this.note);
+
+        this.particles.push(
+          new Particle(mousePosition, this.speed, _color, this.padManager.cursorSize)
+        );
+      } else {
+        this.synth.triggerRelease();
       }
     }
 
     if (this.particles.length > 0) {
       this.particles.forEach((particle) => particle.update());
     }
-
-    if (drawing) {
-      const particle = new Particle(mousePosition, speed, this.currentColor);
-      particles.push(particle);
-
-      if (prevNoteFinal === null) {
-        synth.triggerAttack(noteFinal);
-      } else if (prevNoteFinal !== noteFinal) {
-        synth.setNote(noteFinal);
-        prevNoteFinal = noteFinal;
-      }
-    } else {
-      synth.triggerRelease();
-      prevNoteFinal = null;
-    }
-
-    //if mouse in pad  noStroke();
-    fill(this.currentColor);
-    ellipse(mousePosition.x, mousePosition.y, previewSize, previewSize);
-    */
   }
 }

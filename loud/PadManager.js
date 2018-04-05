@@ -7,41 +7,42 @@ class PadManager {
   }
 
   constructor(canvasRect, noteStems, minOctave, maxOctave, synth) {
-    console.log('PadManager');
-    const canvasWidth = canvasRect.width;
-    const canvasHeight = canvasRect.height;
-    this.padWidth = canvasWidth / noteStems.length;
-    this.padHeight = canvasHeight / (maxOctave - minOctave);
-    this.pads = [];
+    this.canvasRect = canvasRect;
+    this.noteStems = noteStems;
+    this.minOctave = minOctave;
+    this.maxOctave = maxOctave;
+    this.padWidth = this.canvasRect.width / noteStems.length;
+    this.padHeight = this.canvasRect.height / (maxOctave - minOctave);
     this.synth = synth;
+    this.pads = [];
+    this.cursorSize = 30;
 
     for (let row = minOctave; row <= maxOctave; row++) {
       for (let col = 0; col < noteStems.length; col++) {
-        const note = noteStems[col] + row;
-        this.pads.push = new Pad(
-          this.padWidth,
-          this.padHeight,
-          row,
-          col,
-          note,
-          PadManager.randomColor(),
-          synth
+        const note = noteStems[col] + (row - 1);
+        const color = PadManager.randomColor();
+        this.pads.push(
+          new Pad(
+            this,
+            this.padWidth,
+            this.padHeight,
+            row - 1,
+            col,
+            note,
+            color,
+            synth
+          )
         );
       }
     }
   } 
 
-  update(drawing, mousePosition) {
-    this.prep();
-    this.draw(drawing, mousePosition);
-  }
-
-  prep() {
-  }
-
-  draw(drawing, mousePosition) {
+  update(canvasRect, drawing, mousePosition) {
+    clear();
     if (this.pads.length > 0) {
-      this.pads.forEach((pad) => pad.update(drawing, mousePosition));
+      this.pads.forEach((pad) => {
+        pad.update(drawing, mousePosition);
+      });
     }
   }
 }
