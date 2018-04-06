@@ -52,8 +52,16 @@ class Pad {
       mousePosition.y > this.y && mousePosition.x < this.x + this.w
     ) {
       // Reset color 
-      const _color = this.color;
-      _color.setAlpha(255);
+      //const _color = this.color;
+      //_color.setAlpha(255);
+      const x = mousePosition.x;
+      const y = mousePosition.y;
+      const colorX = Math.floor( (x / this.padManager.canvasRect.width) * 255);
+      const colorY = Math.floor( (y / this.padManager.canvasRect.height) * 255);
+      const oldZ = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+      const colorZ = x * y / oldZ;
+      console.log(`${colorX}, ${colorY}, ${colorZ}`);
+      const _color = color(colorX, colorY, colorZ);
 
       // Draw Mouse Cursor
       const size = this.padManager.cursorSize;

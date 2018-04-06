@@ -15,12 +15,12 @@ class PadManager {
     this.padHeight = this.canvasRect.height / (maxOctave - minOctave);
     this.synth = synth;
     this.pads = [];
-    this.cursorSize = 30;
+    this.cursorSize = Math.round((this.padWidth / 4) / 10) * 10;
     this.currentNote = null;
 
     for (let row = minOctave; row <= maxOctave; row++) {
       for (let col = 0; col < noteStems.length; col++) {
-        const note = noteStems[col] + (row - 1);
+        const note = noteStems[row - 1] + (col);
         const color = PadManager.randomColor();
         this.pads.push(
           new Pad(

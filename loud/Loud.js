@@ -14,8 +14,8 @@ let mousePosition;
 let counter = 0;
 
 function setup() {
-  synth = new Tone.MonoSynth().toMaster();
-  synth.volume.value = -20;
+  synth = new Tone.FMSynth().toMaster();
+  synth.volume.value = -10;
 
   prep();
 
