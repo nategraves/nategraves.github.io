@@ -56,19 +56,22 @@ class Pad {
       _color.setAlpha(255);
 
       // Draw Mouse Cursor
+      const size = this.padManager.cursorSize;
       noStroke();
       fill(_color);
-      ellipse(mousePosition.x, mousePosition.y, 30, 30);
+      ellipse(mousePosition.x, mousePosition.y, size, size);
 
       if (drawing) {
         // Start playing the note
-        this.synth.setNote(this.note);
+        //this.synth.setNote(this.note);
+        this.padManager.currentNote = this.note;
 
         this.particles.push(
-          new Particle(mousePosition, this.speed, _color, this.padManager.cursorSize)
+          new Particle(mousePosition, this.speed, _color, size)
         );
       } else {
-        this.synth.triggerRelease();
+        //this.synth.triggerRelease();
+        this.padManager.currentNote = null;
       }
     }
 

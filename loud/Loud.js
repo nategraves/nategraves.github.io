@@ -14,8 +14,8 @@ let mousePosition;
 let counter = 0;
 
 function setup() {
-  synth = new Tone.AMSynth().toMaster();
-  synth.volumne = -10;
+  synth = new Tone.MonoSynth().toMaster();
+  synth.volume.value = -20;
 
   prep();
 
@@ -58,6 +58,14 @@ function draw() {
   counter++;
   prep();
   padManager.update(canvasRect, drawing, mousePosition);
+
+  if (padManager.currentNote === null) {
+    synth.triggerRelease();
+  } else {
+    //synth.setNote(padManager.currentNote);
+    synth.triggerAttackRelease(padManager.currentNote, "8n");
+  }
+
   if (counter % 100 === 0) {
     //debugger;
   }

@@ -16,6 +16,7 @@ class PadManager {
     this.synth = synth;
     this.pads = [];
     this.cursorSize = 30;
+    this.currentNote = null;
 
     for (let row = minOctave; row <= maxOctave; row++) {
       for (let col = 0; col < noteStems.length; col++) {
