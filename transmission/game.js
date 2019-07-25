@@ -3,37 +3,40 @@ const _gameWidth = 1000;
 const _gameHeight = 700;
 const _leftFlagOrigin = { x: 180, y: 590 };
 const _rightFlagOrigin = { x: 140, y: 590 };
-const _maxFlagDistance = 75;
-const _fudge = 0.1;
-const _lpositions = {
-  l1: { X: 0.5, Y: 0.95 },
-  l2: { X: -0.75, Y: 0.8 },
-  l3: { X: -0.95, Y: 0 },
-  l4: { X: 0.75, Y: -0.8 },
-  l5: { X: 0.5, Y: -0.95 },
-  l6: { X: 0.75, Y: 0.8 },
-  l7: { X: 1, Y: 0 },
+const _xFlagMultiplier = 100;
+const _yFlagMultiplier = 75;
+const _fudge = 0.01;
+const _lPositions = {
+  'l0': { 'X': 0, 'Y': 0 },
+  'l1': { 'X': 0.5, 'Y': 1 },
+  'l2': { 'X': -0.75, 'Y': 0.75 },
+  'l3': { 'X': -1, 'Y': 0 },
+  'l4': { 'X': 0.75, 'Y': -0.75 },
+  'l5': { 'X': 0.5, 'Y': -1 },
+  'l6': { 'X': 0.75, 'Y': 0.75 },
+  'l7': { 'X': 1, 'Y': 0 },
 };
-const _rpositions = {
-  r1: { X: 0.5, Y: 0.95 },
-  r2: { X: 0.75, Y: 0.8 },
-  r3: { X: 0.95, Y: 0 },
-  r4: { X: -0.75, Y: -0.8 },
-  r5: { X: 0.5, Y: -0.95 },
-  r6: { X: -0.75, Y: 0.8 },
-  r7: { X: -1, Y: 0 },
+const _rPositions = {
+  'r0': { 'X': 0, 'Y': 0 },
+  'r1': { 'X': 0.5, 'Y': 1 },
+  'r2': { 'X': 0.75, 'Y': 0.75 },
+  'r3': { 'X': 1, 'Y': 0 },
+  'r4': { 'X': -0.75, 'Y': -0.75 },
+  'r5': { 'X': 0.5, 'Y': -1 },
+  'r6': { 'X': -0.75, 'Y': 0.75 },
+  'r7': { 'X': -1, 'Y': 0 },
 }
 const _alphabet = {
-  l1r1: '.', l2r1: 'A', l3r1: 'B', l4r1: 'C', l5r1: 'D',
-  l1r4: 'E', l1r3: 'F', l1r2: 'G', l3r6: 'H', l4r6: 'I',
-  l5r3: 'J', l2r5: 'K', l2r4: 'L', l2r3: 'M', l2r2: 'N',
-  l4r7: 'O', l3r5: 'P', l3r4: 'Q', l3r3: 'R', l3r2: 'S',
-  l4r5: 'T', l4r4: 'U', l5r2: 'V', l7r4: 'W', l6r4: 'X',
-  l4r3: 'Y', l6r3: 'Z', l5r4: '#' 
+  'l1r1': '.', 'l2r1': 'A', 'l3r1': 'B', 'l4r1': 'C', 'l5r1': 'D',
+  'l1r4': 'E', 'l1r3': 'F', 'l1r2': 'G', 'l3r6': 'H', 'l4r6': 'I',
+  'l5r3': 'J', 'l2r5': 'K', 'l2r4': 'L', 'l2r3': 'M', 'l2r2': 'N',
+  'l4r7': 'O', 'l3r5': 'P', 'l3r4': 'Q', 'l3r3': 'R', 'l3r2': 'S',
+  'l4r5': 'T', 'l4r4': 'U', 'l5r2': 'V', 'l7r4': 'W', 'l6r4': 'X',
+  'l4r3': 'Y', 'l6r3': 'Z', 'l5r4': '#' 
 };
 const _numerals = {
-  l2r1: '1', l3r1: '2', l4r1: '3', l5r1: '4', l1r4: '5',
-  l1r3: '6', l1r2: '7', l3r6: '8', l4r6: '9', l5r3: '0'
+  'l2r1': '1', 'l3r1': '2', 'l4r1': '3', 'l5r1': '4', 'l1r4': '5',
+  'l1r3': '6', 'l1r2': '7', 'l3r6': '8', 'l4r6': '9', 'l5r3': '0'
 }
 const _game = new Phaser.Game(
   _gameWidth, _gameHeight, Phaser.AUTO, '',
@@ -50,7 +53,8 @@ let _urTxt = '';
 let _pad, _frietnd, _leftFlag, _leftArm,
     _rightFlag, _rightArm, _flags, _leftStickX,
     _leftStickY, _leftTrigger, _rightStickX,
-    _rightStickY, _rightTrigger;
+    _rightStickY, _rightTrigger, _prevLX, _prevLY,
+    _prevRX, _prevRY;
 
 function preload() {
   _game.load.image('bg', 'bg.png');
@@ -130,23 +134,23 @@ function resetFlags() {
 
 function keypressHandler(char) {
   if (debug) console.log(`Pressed: ${char}`);
-  const pos = alphaToFlag(char);
+  const pos = alphabetToFlag(char);
   if (debug) console.log(`Got pos: ${pos}`);
 
   if (pos === '') return;
   _typing = window.setTimeout(resetFlags, 1500);
 
-  const leftPos = _lpositions[pos.substr(0, 2)];
-  const rightPos = _rpositions[pos.substr(2, 2)];
+  const leftPos = _lPositionsitions[pos.substr(0, 2)];
+  const rightPos = _rPositionsitions[pos.substr(2, 2)];
 
   _game.add.tween(_leftFlag.position).to({
-    x: _leftFlagOrigin.x + (leftPos.X * _maxFlagDistance),
-    y: _leftFlagOrigin.y + (leftPos.Y * _maxFlagDistance)
+    x: _leftFlagOrigin.x + (leftPos.X * _xFlagMultiplier),
+    y: _leftFlagOrigin.y + (leftPos.Y * _yFlagMultiplier)
   }, 300, Phaser.Easing.Cubic.Out, true);
 
   _game.add.tween(_rightFlag.position).to({
-    x: _rightFlagOrigin.x + (rightPos.X * _maxFlagDistance),
-    y: _rightFlagOrigin.y + (rightPos.Y * _maxFlagDistance)
+    x: _rightFlagOrigin.x + (rightPos.X * _xFlagMultiplier),
+    y: _rightFlagOrigin.y + (rightPos.Y * _yFlagMultiplier)
   }, 300, Phaser.Easing.Cubic.Out, true);
 }
 
@@ -160,52 +164,101 @@ function onRightTrigger(buttonCode, value) {
   _rightFlag.angle = value * 180;
 }
 
-function flagToAlpha(lx, ly, rx, ry) {
-  let responseLeft = '';
-  let responseRight = '';
-
-  for (const lkey in _lpositions) {
-    const { X, Y } = _lpositions[lkey];
-    if (X - _fudge > lx < X + _fudge && Y - _fudge > ly < Y + _fudge) {
-      console.log(lkey);
-      responseLeft = lkey;
-      break;
-    }
-  }
-
-  for (const rkey in _rpositions) {
-    const { X, Y } = _rpositions[rkey];
-    if (X - _fudge > rx < X + _fudge && Y - _fudge > ry < Y + _fudge) {
-      responseRight = rkey;
-      break;
-    }
-  }
-
-  let char;
-  if (_numeralMode) {
-    char = _numerals[`${responseLeft} + ${responseRight}`] || '';
+function flagToAlphabet(lx, ly, rx, ry) {
+  //console.log(`Starting: ${lx}, ${ly}, ${rx}, ${ry}`);
+  let sameCount = 0;
+  if (lx !== _prevLX) {
+    _prevLX = lx;
   } else {
-    char = _alphabet[`${responseLeft} + ${responseRight}`] || '';
-    //if (char === '#') _numeralMode = !_numeralMode;
+    sameCount += 1;
+  }
+  if (ly !== _prevLY) {
+    _prevLY = ly;
+  } else {
+    sameCount += 1;
+  }
+  if (rx !== _prevRX) {
+    _prevRX = rx;
+  } else {
+    sameCount += 1;
+  }
+  if (ly !== _prevLY) {
+    _prevLY = ly;
+  } else {
+    sameCount += 1;
   }
 
-  return ;
+
+  let response = '';
+
+  const lPositions = Object.keys(_lPositions);
+  for (let key of lPositions) {
+    const { X, Y } = _lPositions[key];
+    console.log(`Checking ${key}: ${X}, ${Y} | ${lx}, ${ly}`);
+    if (X - _fudge < lx > X + _fudge && Y - _fudge > ly < Y + _fudge) {
+      console.log(`L Key: ${key}`);
+      response += key;
+      break;
+    }
+  }
+
+  /*
+  const rPositions = Object.keys(_rPositions);
+  for (let key of rPositions) {
+    const { X, Y } = _rPositions[key];
+    console.log(`Checking ${key}: ${X}, ${Y} | ${rx}, ${ry}`);
+    //if (X - _fudge < rx > X + _fudge && Y - _fudge < ry > Y + _fudge) {
+    if (X === rx && Y === ry) {
+      console.log(`R Key: ${key}`);
+      response += key;
+      break;
+    }
+  }
+  */
+
+  //console.log(`Response: ${response}`);
+
+  if (response.length < 4) {
+    return;
+  }
+
+  if (_numeralMode) {
+    _myChar = _numerals[response] || '';
+  } else {
+    _myChar = _alphabet[response] || '';
+
+    if (_myChar === '#') {
+      _numeralMode = !_numeralMode
+    };
+  }
+
+  if (_myChar && _myChar !== '') {
+    console.log(`Current Char: ${_myChar}`);
+  }
+
+  return _myChar;
 }
 
-function alphaToFlag(char) {
+function alphabetToFlag(char) {
   const key = char.toUpperCase();
-  if (debug) console.log(`Getting flag position for ${key}`);
+
+  if (debug) {
+    console.log(`Getting flag position for ${key}`);
+  }
 
   let inverted = _.invert(_alphabet);
-  if (_numeralMode) inverted = _.invert(_numerals);
+
+  if (_numeralMode) {
+    inverted = _.invert(_numerals);
+  }
   const response = inverted[key];
 
   return response || '';
 }
 
 function handleInput() {
-  _leftStickX = _pad.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X || 0);
-  _leftStickY = _pad.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y || 0);
+  _leftStickX = _pad.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X) || 0;
+  _leftStickY = _pad.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y) || 0;
 
   _rightStickX = _pad.axis(Phaser.Gamepad.XBOX360_STICK_RIGHT_X) || 0;
   _rightStickY = _pad.axis(Phaser.Gamepad.XBOX360_STICK_RIGHT_Y) || 0;
@@ -216,17 +269,21 @@ function handleInput() {
 
 function moveFlags() {
   if (!_typing) {
-    _rightFlag.position.x = _rightFlagOrigin.x + (_rightStickX * _maxFlagDistance);
-    _rightFlag.position.y = _rightFlagOrigin.y + (_rightStickY * _maxFlagDistance);
-    _leftFlag.position.x = _leftFlagOrigin.x + (_leftStickX * _maxFlagDistance);
-    _leftFlag.position.y = _leftFlagOrigin.y + (_leftStickY * _maxFlagDistance);
+    _rightFlag.position.x = _rightFlagOrigin.x + (_rightStickX * _xFlagMultiplier);
+    _rightFlag.position.y = _rightFlagOrigin.y + (_rightStickY * _yFlagMultiplier);
+    _leftFlag.position.x = _leftFlagOrigin.x + (_leftStickX * _xFlagMultiplier);
+    _leftFlag.position.y = _leftFlagOrigin.y + (_leftStickY * _yFlagMultiplier);
   }
 }
 
 function updateTxt() {
-  if (_leftStickX === 0 && _leftStickY === 0 && _rightStickX === 0 && _rightStickY === 0) {
-    _myChar = flagToAlpha(_leftStickX, _leftStickY, _rightStickX, _rightStickY);
-    if (_myTxt) _myTxt.text = _myChar;
+  //console.log(`Updating text: ${_leftStickX}, ${_leftStickY}, ${_rightStickX}, ${_rightStickY}`);
+  _myChar = flagToAlphabet(_leftStickX, _leftStickY, _rightStickX, _rightStickY);
+  if (_myChar) {
+    _myTxt.text = _myChar;
+    if (_myTxt.text && _myTxt.text !== '') {
+      console.log(_myTxt.text);
+    }
   }
 }
 

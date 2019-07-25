@@ -52,8 +52,8 @@ class Pad {
       mousePosition.y > this.y && mousePosition.x < this.x + this.w
     ) {
       // Reset color 
-      //const _color = this.color;
-      //_color.setAlpha(255);
+      // const _color = this.color;
+      // _color.setAlpha(255);
       const x = mousePosition.x;
       const y = mousePosition.y;
       const colorX = Math.floor( (x / this.padManager.canvasRect.width) * 255);
