@@ -28,3 +28,8 @@ section div {
 section div span {
   font-size: 12px;
 }
+
+p {
+  font-size: 14px;
+  margin-bottom: 1rem;
+}
