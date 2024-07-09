@@ -2,6 +2,29 @@
   margin: 50px;
 }
 
-.welcome h1 {
+h1 {
+  font-size: 22px;
   margin-bottom: 3rem;
+}
+
+h2 {
+  font-size: 18px;
+  font-weight: normal;
+}
+
+hr {
+  margin-bottom: 1rem;
+  margin-top: 0;
+}
+
+section {
+  margin: 1rem 0;
+}
+
+section div {
+  margin-bottom: 1rem;
+}
+
+section div span {
+  font-size: 12px;
 }
