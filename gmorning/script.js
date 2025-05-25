@@ -53,13 +53,11 @@ function checkCollisions() {
           log('Collision detected', { objA, objB });
 
           if (objA.dieOnCollision) {
-            objects[objA.id] = null;
-            collisions[cellId].splice(i, 1);
+            objA.alive = false;
           }
 
           if (objB.dieOnCollision) {
-            objects[objB.id] = null;
-            collisions[cellId].splice(j, 1);
+            objA.alive = false;
           }
 
           // Handle collision response (e.g., bounce off)
@@ -83,6 +81,10 @@ function checkCollisions() {
 function drawObjects() {
   for (const id in objects) {
     const obj = objects[id];
+    if (obj == null || !obj.x || !obj.y || !obj.size || !obj.alive) {
+      console.log({ obj });
+      continue;
+    }
     ctx.fillStyle = 'blue';
     ctx.beginPath();
     ctx.arc(obj.x, obj.y, obj.size, 0, Math.PI * 2);
@@ -122,7 +124,8 @@ function onClick(event) {
     vx = randomInt(-vMax, vMax);
     vy = randomInt(-vMax, vMax);
   }
-  objects[id] = { x, y, vx, vy, size, dieOnCollision: true };
+  const newObject = { id, x, y, vx, vy, size, dieOnCollision: true, alive: true };
+  objects[id] = newObject;
   const cellId = getGridCell(x, y);
   collisions[cellId].push(objects[id]);
   log('New object added', { id, x, y, vx, vy });
@@ -152,8 +155,14 @@ function resetCollisionGrid() {
   }
 
   // Populate the collision grid with objects
-  for (const id in objects) {
+  for (const id in objects.filter(obj => obj && obj.alive)) {
     const obj = objects[id];
+
+    if (!obj || !obj.x || !obj.y || !obj.size || !obj.alive) {
+      console.log({ obj });
+      continue;
+    }
+
     const cellId = getGridCell(obj.x, obj.y);
     // Check if the cellId is valid
     if (!collisions[cellId]) {
@@ -207,6 +216,10 @@ function update() {
 function updateObjects() {
   for (const id in objects) {
     const obj = objects[id];
+    if (obj == null || !obj.x || !obj.y || !obj.size) {
+      console.log({ obj });
+      continue;
+    }
     obj.x += obj.vx;
     obj.y += obj.vy;
 
