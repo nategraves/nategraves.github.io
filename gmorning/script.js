@@ -93,6 +93,20 @@ function checkCollisions() {
         }
     }
 }
+function drawShield() {
+    if (!player.alive || !inputState.shift)
+        return;
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(player.x, player.y);
+    ctx.lineTo(inputState.mouseX, inputState.mouseY);
+    ctx.stroke();
+    ctx.closePath();
+    ctx.beginPath();
+    ctx.arc(inputState.mouseX, inputState.mouseY, 50, 0, Math.PI);
+    ctx.closePath();
+}
 function drawObjects() {
     var _a;
     for (var id in gameObjects) {
@@ -134,9 +148,30 @@ function handleClick(event, isRightClick) {
         x: vector.x / Math.sqrt(vector.x * vector.x + vector.y * vector.y),
         y: vector.y / Math.sqrt(vector.x * vector.x + vector.y * vector.y),
     };
-    var speed = randomInt(1, vMax);
-    var vx = normalizedVector.x * speed;
-    var vy = normalizedVector.y * speed;
+    var isLeft = player.x <= width / 2;
+    var isTop = player.y <= height / 2;
+    var magnitude;
+    if (isLeft && isTop) {
+        // Top Left Quadrant: 0,0
+        magnitude = Math.sqrt(player.x * player.x + player.y * player.y);
+    }
+    if (!isLeft && isTop) {
+        // Top Right Quadrant: width,0
+        magnitude = Math.sqrt((width - player.x) * (width - player.x) + player.y * player.y);
+    }
+    if (isLeft && !isTop) {
+        // Bottom Left Quadrant: 0, height
+        magnitude = Math.sqrt(player.x * player.x + (height - player.y) * (height - player.y));
+    }
+    if (!isLeft && !isTop) {
+        // Bottom Right Quadrant: width, height
+        magnitude = Math.sqrt((width - player.x) * (width - player.x) +
+            (height - player.y) * (height - player.y));
+    }
+    console.log({ magnitude: magnitude, normalizedVector: normalizedVector });
+    // const speed = randomInt(1, vMax);
+    var vx = normalizedVector.x * 4;
+    var vy = normalizedVector.y * 4;
     // Add a new object at the click position
     var id = gameObjects.length;
     var size = randomInt(sizeMin, sizeMax);
@@ -248,6 +283,15 @@ function handleKeyUp(event) {
         case "ArrowRight":
             inputState.right = false;
             break;
+        case "Shift":
+            inputState.shift = false;
+            break;
+        case "Control":
+            inputState.ctrl = false;
+            break;
+        case "Alt":
+            inputState.alt = false;
+            break;
         default:
             log("Unhandled key up", { key: event.key });
             break;
@@ -338,6 +382,7 @@ function update(timestamp) {
     resetCollisionGrid();
     checkCollisions();
     drawObjects();
+    drawShield();
     requestAnimationFrame(update);
 }
 function updateObjectPositions() {

@@ -30,6 +30,11 @@ interface InputState {
   q: boolean; // Toggle debug mode
 }
 
+interface Vector {
+  x: number;
+  y: number;
+}
+
 const PLAYER_SIZE = 14;
 
 let canvas, ctx;
@@ -143,6 +148,22 @@ function checkCollisions() {
   }
 }
 
+function drawShield() {
+  if (!player.alive || !inputState.shift) return;
+
+  ctx.strokeStyle = "black";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(player.x, player.y);
+  ctx.lineTo(inputState.mouseX, inputState.mouseY);
+  ctx.stroke();
+  ctx.closePath();
+
+  ctx.beginPath();
+  ctx.arc(inputState.mouseX, inputState.mouseY, 50, 0, Math.PI);
+  ctx.closePath();
+}
+
 function drawObjects() {
   for (const id in gameObjects) {
     const obj = gameObjects[id];
@@ -183,15 +204,45 @@ function handleClick(event, isRightClick = false) {
   const vector = {
     x: inputState.mouseX - player.x,
     y: inputState.mouseY - player.y,
-  }
+  };
   const normalizedVector = {
     x: vector.x / Math.sqrt(vector.x * vector.x + vector.y * vector.y),
     y: vector.y / Math.sqrt(vector.x * vector.x + vector.y * vector.y),
   };
 
-  const speed = randomInt(1, vMax);
-  const vx = normalizedVector.x * speed;
-  const vy = normalizedVector.y * speed;
+  const isLeft = player.x <= width / 2;
+  const isTop = player.y <= height / 2;
+  let magnitude;
+
+  if (isLeft && isTop) {
+    // Top Left Quadrant: 0,0
+    magnitude = Math.sqrt(player.x * player.x + player.y * player.y);
+  }
+  if (!isLeft && isTop) {
+    // Top Right Quadrant: width,0
+    magnitude = Math.sqrt(
+      (width - player.x) * (width - player.x) + player.y * player.y
+    );
+  }
+  if (isLeft && !isTop) {
+    // Bottom Left Quadrant: 0, height
+    magnitude = Math.sqrt(
+      player.x * player.x + (height - player.y) * (height - player.y)
+    );
+  }
+  if (!isLeft && !isTop) {
+    // Bottom Right Quadrant: width, height
+    magnitude = Math.sqrt(
+      (width - player.x) * (width - player.x) +
+        (height - player.y) * (height - player.y)
+    );
+  }
+
+  console.log({ magnitude, normalizedVector });
+
+  // const speed = randomInt(1, vMax);
+  const vx = normalizedVector.x * 4;
+  const vy = normalizedVector.y * 4;
 
   // Add a new object at the click position
   const id = gameObjects.length;
@@ -307,6 +358,15 @@ function handleKeyUp(event) {
     case "ArrowRight":
       inputState.right = false;
       break;
+    case "Shift":
+      inputState.shift = false;
+      break;
+    case "Control":
+      inputState.ctrl = false;
+      break;
+    case "Alt":
+      inputState.alt = false;
+      break;
     default:
       log("Unhandled key up", { key: event.key });
       break;
@@ -350,6 +410,10 @@ function log(message, data?) {
   } else {
     console.log(message);
   }
+}
+
+function magnitude(vector: Vector) {
+  return Math.sqrt(vector.x * vector.x + vector.y * vector.y);
 }
 
 function onResize() {
@@ -417,6 +481,7 @@ function update(timestamp: number) {
   resetCollisionGrid();
   checkCollisions();
   drawObjects();
+  drawShield();
 
   requestAnimationFrame(update);
 }
