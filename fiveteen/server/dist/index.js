@@ -46,7 +46,7 @@ const HALF_W = LEVEL_WIDTH / 2;
 const HALF_H = LEVEL_HEIGHT / 2;
 // Player drawing constants (server uses normalized ratios)
 const PLAYER_RADIUS_PX = 20; // Renamed to avoid conflict if PLAYER_RADIUS is used elsewhere for ratio
-const AIM_OFFSET_PX_CONST = 38; // Renamed to avoid conflict
+const AIM_OFFSET_PX_CONST = 38; // Match client's AIM_OFFSET for aim circle
 const MAX_JUMPS_CONST = 2; // Renamed to avoid conflict
 // Level bounds half-dimensions
 const MAX_RATIO_X = 1 - PLAYER_RADIUS_PX / HALF_W;
@@ -58,16 +58,19 @@ const THROW_SPEED = 2; // ratio units per second for balloon velocity
 const DEAD_ZONE = 0.1; // minimal aim threshold
 const MAX_CHARGE_TIME = 1000; // ms to reach full throw power
 const MAX_WETNESS = 100;
-const WETNESS_PER_HIT = 10;
+const WETNESS_PER_HIT = 15; // Increased from 10 to 15
 const PLAYER_DRYING_RATE_CONST = 5; // Renamed
 const TERMINAL_VELOCITY_CONST = 2.5; // Base terminal velocity
 // Umbrella constants
 const UMBRELLA_GRAVITY_MULTIPLIER = 0.5;
+const UMBRELLA_HORIZONTAL_SPEED_MULTIPLIER = 0.85; // New: 15% slower
 const UMBRELLA_DEFAULT_ANGLE = -Math.PI / 2; // Pointing upwards
 const UMBRELLA_WIDTH_RATIO = (PLAYER_RADIUS_PX * 2.5) / HALF_W; // Umbrella is wider than player
 const UMBRELLA_HEIGHT_RATIO = (PLAYER_RADIUS_PX * 0.5) / HALF_H; // For collision, a flat-ish rectangle
-const UMBRELLA_OFFSET_Y_RATIO = (PLAYER_RADIUS_PX + 5) / HALF_H; // Offset above the player's center
+const UMBRELLA_OFFSET_Y_RATIO = (PLAYER_RADIUS_PX + 5) / HALF_H; // Base offset above the player's center
 const UMBRELLA_TERMINAL_VELOCITY = TERMINAL_VELOCITY_CONST * 0.7; // Slower terminal velocity with umbrella
+const UMBRELLA_MAX_REACH_MULTIPLIER = 3.0; // New: Max reach multiplier
+const BASE_UMBRELLA_DISTANCE_RATIO = UMBRELLA_OFFSET_Y_RATIO; // New: Clarity for base offset
 const TEAM_INFO = [
     { hex: '#f00', name: 'Raging Reds', cssColor: 'red' },
     { hex: '#00f', name: 'Brave Blues', cssColor: 'blue' },
@@ -86,7 +89,8 @@ let winningTeam = null; // New: Winning team
 const playerPersistentStats = new Map();
 const teamSessionWins = [0, 0]; // Tracks total games won by each team in the session
 // Tunable move and jump settings
-const MOVE_SPEED = 200; // horizontal speed in ratio units per second (increase for faster movement)
+const BASE_MOVE_SPEED = 200; // Original base speed
+const MOVE_SPEED = BASE_MOVE_SPEED * 1.75; // Increased by 1.75x
 const JUMP_MULTIPLIER = 3; // multiplier for jump velocity
 // Collision detection radius in ratio units (approximate)
 const COLLISION_RADIUS = PLAYER_RADIUS_PX / HALF_W;
@@ -106,6 +110,7 @@ function createServer(port) {
         ws.on('message', (data) => {
             try {
                 const msg = JSON.parse(data.toString());
+                console.log('Received message:', msg.type, msg);
                 const currentControllerClientIds = clientAssociatedControllerIds.get(ws);
                 switch (msg.type) {
                     case 'init':
@@ -207,6 +212,7 @@ function createServer(port) {
                         }
                         break;
                     case 'restart_game': // Handler for the new restart_game message
+                        console.log("Received restart_game message - resetting game state");
                         gameOver = false;
                         winningTeam = null;
                         teamScores[0] = 0;
@@ -241,6 +247,7 @@ function createServer(port) {
                                 // prevLeftTrigger: false, // Removed
                             });
                         });
+                        console.log("Game state reset complete, players reassigned to teams");
                         break;
                     case 'input':
                         if (players.has(msg.clientId)) {
@@ -299,14 +306,15 @@ function createServer(port) {
                                 const aimMagnitude = Math.sqrt(p.aimX * p.aimX + p.aimY * p.aimY);
                                 // only throw if aiming
                                 if (aimMagnitude > DEAD_ZONE) {
-                                    // Normalize aim vector for consistent spawn offset distance
-                                    const normAimX = p.aimX / aimMagnitude;
-                                    const normAimY = p.aimY / aimMagnitude;
-                                    // Calculate spawn offset using normalized aim and fixed distance
-                                    const spawnOffsetX = normAimX * (AIM_OFFSET_PX_CONST / HALF_W);
-                                    const spawnOffsetY = normAimY * (AIM_OFFSET_PX_CONST / HALF_H);
-                                    const spawnX = p.ratioX + spawnOffsetX;
-                                    const spawnY = p.ratioY + spawnOffsetY;
+                                    // // Normalize aim vector for consistent spawn offset distance -- REMOVED for matching client aim circle
+                                    // const normAimX = p.aimX / aimMagnitude;
+                                    // const normAimY = p.aimY / aimMagnitude;
+                                    // Calculate spawn offset using raw aim vector and AIM_OFFSET_PX_CONST
+                                    // This matches the client's aim circle rendering logic.
+                                    const spawnOffsetX_ratio = p.aimX * (AIM_OFFSET_PX_CONST / HALF_W);
+                                    const spawnOffsetY_ratio = p.aimY * (AIM_OFFSET_PX_CONST / HALF_H);
+                                    const spawnX = p.ratioX + spawnOffsetX_ratio;
+                                    const spawnY = p.ratioY + spawnOffsetY_ratio;
                                     // Adjust speed: min is 0.5 * THROW_SPEED, max is 1.0 * THROW_SPEED
                                     // throwPower (charge time) determines the base speed multiplier.
                                     const effectivePower = 0.5 + throwPower * 0.5;
@@ -318,8 +326,8 @@ function createServer(port) {
                                         id: `${msg.clientId}-${now}`,
                                         x: spawnX,
                                         y: spawnY,
-                                        vx: p.aimX * baseSpeed, // Original aim vector component for direction and velocity scaling
-                                        vy: p.aimY * baseSpeed, // Original aim vector component for direction and velocity scaling
+                                        vx: p.vx + p.aimX * baseSpeed, // Re-add player's vx
+                                        vy: p.vy + p.aimY * baseSpeed, // Re-add player's vy
                                         radius: BALLOON_RADIUS_RATIO,
                                         ownerId: msg.clientId,
                                         team: p.team,
@@ -449,27 +457,56 @@ function createServer(port) {
             .sort((a, b) => b - a)
             .forEach((idx) => balloons.splice(idx, 1));
         balloons.push(...toMerge);
-        // Player-balloon collision
+        // Combined Player/Umbrella-Balloon Collision and Wetness Application
         for (let i = balloons.length - 1; i >= 0; i--) {
             const b = balloons[i];
+            // let balloonHandledThisIteration = false; // Not strictly needed due to break
             for (const p of players.values()) {
+                // 1. Check if THIS player p blocks balloon b with THEIR OWN umbrella
+                if (p.isUmbrellaOpen) {
+                    const aimMagnitude = Math.sqrt(p.aimX * p.aimX + p.aimY * p.aimY);
+                    let currentReachMultiplier = 1.0;
+                    if (aimMagnitude > DEAD_ZONE) {
+                        const normalizedAimMagnitude = Math.min(aimMagnitude, 1.0); // Ensure 0-1
+                        currentReachMultiplier =
+                            1 + (UMBRELLA_MAX_REACH_MULTIPLIER - 1) * normalizedAimMagnitude;
+                    }
+                    const dynamicUmbrellaDistanceRatio = BASE_UMBRELLA_DISTANCE_RATIO * currentReachMultiplier;
+                    const umbrellaEffectiveCenterX = p.ratioX + Math.cos(p.umbrellaAngle) * dynamicUmbrellaDistanceRatio;
+                    const umbrellaEffectiveCenterY = p.ratioY + Math.sin(p.umbrellaAngle) * dynamicUmbrellaDistanceRatio;
+                    const cosA = Math.cos(-p.umbrellaAngle);
+                    const sinA = Math.sin(-p.umbrellaAngle);
+                    const translatedBalloonX = b.x - umbrellaEffectiveCenterX;
+                    const translatedBalloonY = b.y - umbrellaEffectiveCenterY;
+                    const rotatedBalloonX = translatedBalloonX * cosA - translatedBalloonY * sinA;
+                    const rotatedBalloonY = translatedBalloonX * sinA + translatedBalloonY * cosA;
+                    if (Math.abs(rotatedBalloonX) < UMBRELLA_WIDTH_RATIO / 2 + b.radius &&
+                        Math.abs(rotatedBalloonY) < UMBRELLA_HEIGHT_RATIO / 2 + b.radius) {
+                        // Blocked by p's own umbrella
+                        balloons.splice(i, 1);
+                        // balloonHandledThisIteration = true;
+                        // console.log(`Player ${p.id} blocked balloon ${b.id} with their own umbrella`);
+                        break; // Balloon is gone, move to next balloon (outer loop processing next i)
+                    }
+                }
+                // 2. If not blocked by p's own umbrella, check for direct player hit
                 // Skip collision if player is on the same team and friendly fire is off
-                if (p.team === b.team && !friendlyFireEnabled)
-                    continue;
+                // This check is relevant only if the balloon wasn't blocked by the umbrella.
+                if (p.team === b.team && !friendlyFireEnabled) {
+                    continue; // Check next player for this balloon
+                }
                 const dx = p.ratioX - b.x;
                 const dy = p.ratioY - b.y;
                 const distSq = dx * dx + dy * dy;
                 if (distSq < (COLLISION_RADIUS + b.radius) ** 2) {
                     // Player hit
-                    p.wetnessLevel += WETNESS_PER_HIT * (b.power + 0.5); // More power = more wetness
+                    p.wetnessLevel += WETNESS_PER_HIT * (b.power + 0.5); // WETNESS_PER_HIT is now 15
                     p.wetnessLevel = Math.min(p.wetnessLevel, MAX_WETNESS);
                     if (p.wetnessLevel >= MAX_WETNESS) {
-                        // Player is fully wet, switch team
                         const oldTeam = p.team;
-                        p.team = (p.team + 1) % TEAM_INFO.length; // Switch to the next team
+                        p.team = (p.team + 1) % TEAM_INFO.length;
                         p.wetnessColor = TEAM_INFO[p.team].hex;
-                        p.wetnessLevel = 0; // Reset wetness
-                        // Update persistent stats
+                        p.wetnessLevel = 0;
                         const throwerStats = playerPersistentStats.get(players.get(b.ownerId)?.playerName || 'Unknown');
                         if (throwerStats) {
                             throwerStats.conversions++;
@@ -478,26 +515,17 @@ function createServer(port) {
                         if (hitPlayerStats) {
                             hitPlayerStats.deathsByConversion++;
                         }
-                        // Update team scores if the player wasn't already on the thrower's team
-                        // (or if friendly fire caused a "conversion" to the same team, which is fine)
                         if (oldTeam !== b.team) {
                             teamScores[b.team]++;
                         }
                         else if (friendlyFireEnabled && oldTeam === b.team) {
-                            // If friendly fire converts, the original team loses a point (effectively)
-                            // and the "new" team (which is the same) gains one.
-                            // This logic might need refinement based on desired FF scoring.
-                            // For now, let's assume FF conversion still scores for the thrower's team.
                             teamScores[b.team]++;
                         }
-                        // Check for game over condition (e.g., first team to X points)
                         const WINNING_SCORE = 5; // Example winning score
                         if (teamScores[b.team] >= WINNING_SCORE) {
                             gameOver = true;
                             winningTeam = b.team;
-                            // Update persistent team session wins
                             teamSessionWins[b.team]++;
-                            // Update gamesWon for players on the winning team
                             for (const player of players.values()) {
                                 if (player.team === winningTeam) {
                                     const stats = playerPersistentStats.get(player.playerName);
@@ -509,51 +537,28 @@ function createServer(port) {
                         }
                     }
                     balloons.splice(i, 1); // Remove balloon
-                    break; // Balloon is gone, move to next balloon
+                    // balloonHandledThisIteration = true;
+                    break; // Balloon hit player p and is gone, move to next balloon (outer loop processing next i)
                 }
             }
+            // if (balloonHandledThisIteration) continue; // Outer loop will correctly handle index due to splice and i--
         }
-        // Umbrella-balloon collision
-        balloons.forEach((balloon, balloonIdx) => {
-            for (const p of players.values()) {
-                if (p.isUmbrellaOpen) {
-                    // Simplified umbrella collision: treat umbrella as a rectangle above the player
-                    // Umbrella center position
-                    const umbrellaCenterX = p.ratioX; // Aligned with player X
-                    const umbrellaCenterY = p.ratioY - UMBRELLA_OFFSET_Y_RATIO; // Offset above player
-                    // Rotate balloon's relative position to align with umbrella's orientation
-                    // (or rotate umbrella's collision box, simpler to rotate balloon relative pos)
-                    const cosA = Math.cos(-p.umbrellaAngle); // Negative angle to bring balloon to umbrella's frame
-                    const sinA = Math.sin(-p.umbrellaAngle);
-                    const translatedBalloonX = balloon.x - umbrellaCenterX;
-                    const translatedBalloonY = balloon.y - umbrellaCenterY;
-                    const rotatedBalloonX = translatedBalloonX * cosA - translatedBalloonY * sinA;
-                    const rotatedBalloonY = translatedBalloonX * sinA + translatedBalloonY * cosA;
-                    // AABB collision check with the (now axis-aligned) umbrella
-                    if (Math.abs(rotatedBalloonX) <
-                        UMBRELLA_WIDTH_RATIO / 2 + balloon.radius &&
-                        Math.abs(rotatedBalloonY) <
-                            UMBRELLA_HEIGHT_RATIO / 2 + balloon.radius) {
-                        // Collision detected!
-                        // For now, just destroy the balloon. No wetness applied to player.
-                        balloons.splice(balloonIdx, 1); // Remove balloon
-                        // Potentially add sound effect, score for blocking, etc. later
-                        // console.log(`Player ${p.id} blocked balloon with umbrella`);
-                        break; // Balloon is gone, move to next player check for this balloon (or next balloon if outer loop continues)
-                    }
-                }
-            }
-        });
         // Player physics and updates
         for (const p of players.values()) {
             // Apply gravity
             let currentGravity = GRAVITY;
             let currentTerminalVelocity = TERMINAL_VELOCITY_CONST;
-            if (p.isUmbrellaOpen && p.vy > 0) {
-                // If umbrella is open and player is falling
-                currentGravity *= UMBRELLA_GRAVITY_MULTIPLIER;
-                currentTerminalVelocity = UMBRELLA_TERMINAL_VELOCITY;
+            let currentMoveSpeedMultiplier = 1.0;
+            if (p.isUmbrellaOpen) {
+                currentMoveSpeedMultiplier = UMBRELLA_HORIZONTAL_SPEED_MULTIPLIER;
+                if (p.vy > 0) {
+                    // Only apply vertical drag if falling
+                    currentGravity *= UMBRELLA_GRAVITY_MULTIPLIER;
+                    currentTerminalVelocity = UMBRELLA_TERMINAL_VELOCITY;
+                }
             }
+            // Apply horizontal speed adjustment from umbrella
+            p.vx *= currentMoveSpeedMultiplier;
             p.vy += currentGravity * dt;
             p.vy = Math.min(p.vy, currentTerminalVelocity); // Apply terminal velocity
             // update position based on velocity
@@ -652,5 +657,7 @@ function createServer(port) {
 }
 // If run directly
 if (require.main === module) {
-    createServer(8080);
+    const port = Number(process.env.PORT) || 8080;
+    createServer(port);
+    console.log(`Server listening on port ${port}`);
 }

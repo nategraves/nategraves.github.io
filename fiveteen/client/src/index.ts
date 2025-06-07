@@ -184,7 +184,9 @@ const UMBRELLA_WIDTH_PX = PLAYER_RADIUS * 2.5;
 const UMBRELLA_THICKNESS_PX = PLAYER_RADIUS * 0.3;
 const UMBRELLA_HANDLE_LENGTH_PX = PLAYER_RADIUS * 0.5; // Length of the handle
 const UMBRELLA_HANDLE_THICKNESS_PX = PLAYER_RADIUS * 0.1; // Thickness of the handle
-const UMBRELLA_OFFSET_Y_PX = PLAYER_RADIUS + 5; // Offset above the player's center (canvas coordinates)
+const BASE_UMBRELLA_OFFSET_Y_PX = PLAYER_RADIUS + 5; // Base offset (canvas coordinates)
+const UMBRELLA_MAX_REACH_MULTIPLIER_CLIENT = 3.0; // Matches server for consistency
+
 const PLAYER_NAME_FONT = "12px sans-serif"; // Font for player names
 const PLAYER_NAME_OFFSET_Y = 5; // Offset below player circle for name
 
@@ -409,15 +411,24 @@ function renderGameState(state: GameState) {
     restartButton.style.fontSize = "20px";
     restartButton.style.cursor = "pointer";
     restartButton.onclick = () => {
+      console.log(
+        "Restart button clicked! WebSocket state:",
+        socket.readyState
+      );
       if (socket.readyState === WebSocket.OPEN) {
+        console.log("Sending restart_game message...");
         socket.send(JSON.stringify({ type: "restart_game" }));
         // Remove the button only after successfully sending the message
         restartButton.remove();
+        console.log("Restart message sent and button removed");
       } else {
         // Optional: alert the user or simply leave the button so they can try again
         // For now, we'll just not remove it, allowing another attempt when connected.
-        console.warn("Could not send restart_game: WebSocket not open.");
-        // You could add an alert here: alert("Connection issue: Please wait and try again.");
+        console.warn(
+          "Could not send restart_game: WebSocket not open. State:",
+          socket.readyState
+        );
+        alert("Connection issue: Please wait and try again.");
       }
     };
     document.body.appendChild(restartButton);
@@ -489,11 +500,14 @@ function renderGameState(state: GameState) {
       ctx.rect(clipX, clipY, 2 * PLAYER_RADIUS, clipHeight);
       ctx.clip(); // Apply clipping
 
+      // Determine the color for the wetness effect
+      // Use the opposing team's color for better visibility
+      const opposingTeamIndex = (p.team + 1) % TEAM_HEX_COLORS.length; // Assumes 2 teams for simplicity of "next"
+      const wetnessEffectColorHex =
+        TEAM_HEX_COLORS[opposingTeamIndex] || "#888888"; // Fallback to grey
+
       // Draw the wetness overlay circle (this will be clipped)
-      // This circle is drawn at the same position as the player body.
-      ctx.fillStyle = p.wetnessColor
-        ? hexToRgba(p.wetnessColor, 0.5)
-        : "rgba(255, 255, 255, 0.5)"; // Use player's wetnessColor with alpha
+      ctx.fillStyle = hexToRgba(wetnessEffectColorHex, 0.75); // Use opposing team's color with 75% alpha
       ctx.beginPath();
       ctx.arc(cx, cy, PLAYER_RADIUS, 0, 2 * Math.PI);
       ctx.fill();
@@ -515,17 +529,35 @@ function renderGameState(state: GameState) {
     // Draw umbrella if open
     if (p.isUmbrellaOpen) {
       ctx.save();
-      ctx.translate(cx, cy); // Translate to player's center
+
+      const aimMagnitude = Math.sqrt(p.aimX * p.aimX + p.aimY * p.aimY);
+      let currentReachMultiplier = 1.0;
+      if (aimMagnitude > DEAD_ZONE) {
+        const normalizedAimMagnitude = Math.min(aimMagnitude, 1.0); // Ensure 0-1 for multiplier calculation
+        currentReachMultiplier =
+          1 +
+          (UMBRELLA_MAX_REACH_MULTIPLIER_CLIENT - 1) * normalizedAimMagnitude;
+      }
+
+      const dynamicUmbrellaOffsetY =
+        BASE_UMBRELLA_OFFSET_Y_PX * currentReachMultiplier;
+
+      // The umbrella's visual pivot point is still the player's center (cx, cy).
+      // The canopy and handle are drawn relative to this, but offset further by dynamicUmbrellaOffsetY along p.umbrellaAngle.
+
+      ctx.translate(cx, cy); // Translate to player's center for rotation
       ctx.rotate(p.umbrellaAngle + Math.PI / 2); // Rotate to aim direction (adjusting for canvas coord system)
 
       const teamColor = TEAM_HEX_COLORS[p.team] || "#grey";
       ctx.fillStyle = teamColor;
 
       // Draw the umbrella canopy
+      // It's positioned dynamicUmbrellaOffsetY units away from the player center along the current rotation.
+      // In the rotated context, this means along the negative Y-axis.
       ctx.beginPath();
       ctx.fillRect(
-        -UMBRELLA_WIDTH_PX / 2, // Centered horizontally
-        -UMBRELLA_OFFSET_Y_PX - UMBRELLA_THICKNESS_PX, // Positioned outward along the rotated axis
+        -UMBRELLA_WIDTH_PX / 2, // Centered horizontally relative to the rotated axis
+        -dynamicUmbrellaOffsetY - UMBRELLA_THICKNESS_PX, // Positioned outward along the rotated axis
         UMBRELLA_WIDTH_PX,
         UMBRELLA_THICKNESS_PX
       );
@@ -538,7 +570,7 @@ function renderGameState(state: GameState) {
       ctx.beginPath();
       ctx.moveTo(0, 0); // Start at the player's center (current origin)
       // End point is along the rotated Y-axis, just before the canopy starts
-      ctx.lineTo(0, -UMBRELLA_OFFSET_Y_PX + UMBRELLA_HANDLE_THICKNESS_PX / 2); // Adjusted to connect nicely
+      ctx.lineTo(0, -dynamicUmbrellaOffsetY + UMBRELLA_HANDLE_THICKNESS_PX / 2); // Connects to the base of the canopy
       ctx.stroke();
 
       ctx.restore();
