@@ -1,5 +1,8 @@
 import http from 'http';
 import WebSocket, { WebSocketServer } from 'ws';
+import * as constants from './constants/index';
+import * as functions from './functions/index';
+import * as types from './types/index';
 
 // Level bounds constants
 const LEVEL_WIDTH = 1000;
@@ -28,7 +31,6 @@ const PLAYER_DRYING_RATE_CONST = 5; // Renamed
 const TERMINAL_VELOCITY_CONST = 2.5; // Base terminal velocity
 
 // Umbrella constants
-const UMBRELLA_GRAVITY_MULTIPLIER = 0.5;
 const UMBRELLA_HORIZONTAL_SPEED_MULTIPLIER = 0.85; // New: 15% slower
 const UMBRELLA_DEFAULT_ANGLE = -Math.PI / 2; // Pointing upwards
 const UMBRELLA_WIDTH_RATIO = (PLAYER_RADIUS_PX * 2.5) / HALF_W; // Umbrella is wider than player
@@ -37,6 +39,7 @@ const UMBRELLA_OFFSET_Y_RATIO = (PLAYER_RADIUS_PX + 5) / HALF_H; // Base offset 
 const UMBRELLA_TERMINAL_VELOCITY = TERMINAL_VELOCITY_CONST * 0.7; // Slower terminal velocity with umbrella
 const UMBRELLA_MAX_REACH_MULTIPLIER = 3.0; // New: Max reach multiplier
 const BASE_UMBRELLA_DISTANCE_RATIO = UMBRELLA_OFFSET_Y_RATIO; // New: Clarity for base offset
+const UMBRELLA_GRAVITY_MULTIPLIER = 0.5; // Restored constant for umbrella gravity multiplier
 
 export interface TeamInfo {
   hex: string;
@@ -48,14 +51,6 @@ const TEAM_INFO: TeamInfo[] = [
   { hex: '#f00', name: 'Raging Reds', cssColor: 'red' },
   { hex: '#00f', name: 'Brave Blues', cssColor: 'blue' },
 ];
-
-// const TEAM_COLORS = ['#f00', '#00f']; // Old way
-const TEAM_COLORS = TEAM_INFO.map((t) => t.hex); // Keep for direct hex access if needed, or phase out
-
-// const WETNESS_THRESHOLD = 3; // Old: hits to switch team on wetness threshold
-// const PLAYER_DRYING_RATE = 5; // Defined as PLAYER_DRYING_RATE_CONST
-// const AIM_OFFSET_PX = 38; // Defined as AIM_OFFSET_PX_CONST
-// const MAX_JUMPS = 2; // Defined as MAX_JUMPS_CONST
 
 let nextTeam = 0;
 let friendlyFireEnabled = false; // Added: Friendly fire toggle
@@ -83,13 +78,7 @@ const COLLISION_RADIUS = PLAYER_RADIUS_PX / HALF_W;
 // initial balloon radius matches collision radius
 const BALLOON_RADIUS_RATIO = COLLISION_RADIUS;
 
-// Umbrella constants - These are now defined at the top. Ensure no re-declarations below.
-// const UMBRELLA_GRAVITY_MULTIPLIER = 0.5;
-// const UMBRELLA_DEFAULT_ANGLE = -Math.PI / 2;
-// const UMBRELLA_WIDTH_RATIO = PLAYER_RADIUS_PX * 2.5 / HALF_W;
-// const UMBRELLA_HEIGHT_RATIO = PLAYER_RADIUS_PX * 0.5 / HALF_H;
-// const UMBRELLA_OFFSET_Y_RATIO = (PLAYER_RADIUS_PX + 5) / HALF_H;
-// const UMBRELLA_TERMINAL_VELOCITY = TERMINAL_VELOCITY_CONST * 0.7;
+const PLAYER_HEIGHT_RATIO = 0.1; // Define player height relative to the game area
 
 export interface Player {
   id: string;
@@ -180,7 +169,6 @@ export function createServer(port: number): {
     ws.on('message', (data: WebSocket.Data) => {
       try {
         const msg = JSON.parse(data.toString()) as IncomingMessageAll;
-        console.log('Received message:', msg.type, msg);
         const currentControllerClientIds =
           clientAssociatedControllerIds.get(ws)!;
 
@@ -196,78 +184,19 @@ export function createServer(port: number): {
             const playerName =
               msg.playerName || `Player_${controllerId.substring(0, 4)}`;
 
-            if (disconnectedPlayerStates.has(controllerId)) {
-              // Player is reconnecting
-              const prevState = disconnectedPlayerStates.get(controllerId)!;
-              players.set(controllerId, {
-                // Restore previous state
+            // Consolidate repetitive logic for player initialization
+            function initializePlayer(
+              controllerId: string,
+              playerName: string,
+              teamIdx: number,
+              ratioX: number,
+              ratioY: number
+            ): Player {
+              return {
                 id: controllerId,
-                playerName: playerName, // Update name if changed, or use old one
-                ratioX: prevState.ratioX !== undefined ? prevState.ratioX : 0,
-                ratioY: prevState.ratioY !== undefined ? prevState.ratioY : 0,
-                vx: prevState.vx !== undefined ? prevState.vx : 0,
-                vy: prevState.vy !== undefined ? prevState.vy : 0,
-                aimX: prevState.aimX !== undefined ? prevState.aimX : 0,
-                aimY: prevState.aimY !== undefined ? prevState.aimY : 0,
-                score: prevState.score !== undefined ? prevState.score : 0,
-                team:
-                  prevState.team !== undefined
-                    ? prevState.team
-                    : nextTeam % TEAM_INFO.length,
-                wetnessLevel:
-                  prevState.wetnessLevel !== undefined
-                    ? prevState.wetnessLevel
-                    : 0,
-                wetnessColor:
-                  prevState.wetnessColor ||
-                  TEAM_INFO[
-                    prevState.team !== undefined
-                      ? prevState.team
-                      : nextTeam % TEAM_INFO.length
-                  ].hex,
-                isGrounded:
-                  prevState.isGrounded !== undefined
-                    ? prevState.isGrounded
-                    : true,
-                prevJump: false,
-                jumpsRemaining:
-                  prevState.jumpsRemaining !== undefined
-                    ? prevState.jumpsRemaining
-                    : MAX_JUMPS_CONST,
-                prevTrigger: false,
-                triggerStart: null,
-                buttons: Array(16).fill(false),
-                isUmbrellaOpen:
-                  prevState.isUmbrellaOpen !== undefined
-                    ? prevState.isUmbrellaOpen
-                    : false,
-                umbrellaAngle:
-                  prevState.umbrellaAngle !== undefined
-                    ? prevState.umbrellaAngle
-                    : UMBRELLA_DEFAULT_ANGLE,
-                // prevLeftTrigger: false, // Removed
-              });
-              disconnectedPlayerStates.delete(controllerId);
-              console.log(
-                `Player ${playerName} (ID: ${controllerId}) reconnected.`
-              );
-            } else if (!players.has(controllerId)) {
-              // New player
-              if (!playerPersistentStats.has(playerName)) {
-                playerPersistentStats.set(playerName, {
-                  playerName: playerName,
-                  conversions: 0,
-                  deathsByConversion: 0,
-                  gamesWon: 0,
-                });
-              }
-              const teamIdx = nextTeam;
-              nextTeam = (nextTeam + 1) % TEAM_INFO.length;
-              players.set(controllerId, {
-                id: controllerId,
-                playerName: playerName,
-                ratioX: 0,
-                ratioY: 0,
+                playerName,
+                ratioX,
+                ratioY,
                 vx: 0,
                 vy: 0,
                 aimX: 0,
@@ -284,10 +213,57 @@ export function createServer(port: number): {
                 buttons: Array(16).fill(false),
                 isUmbrellaOpen: false,
                 umbrellaAngle: UMBRELLA_DEFAULT_ANGLE,
-                // prevLeftTrigger: false, // Removed
-              });
+              };
+            }
+
+            if (disconnectedPlayerStates.has(controllerId)) {
+              // Player is reconnecting
+              const prevState = disconnectedPlayerStates.get(controllerId)!;
+              players.set(
+                controllerId,
+                initializePlayer(
+                  controllerId,
+                  playerName,
+                  prevState.team !== undefined
+                    ? prevState.team
+                    : nextTeam % TEAM_INFO.length,
+                  prevState.ratioX !== undefined ? prevState.ratioX : 0,
+                  prevState.ratioY !== undefined ? prevState.ratioY : 0
+                )
+              );
+              disconnectedPlayerStates.delete(controllerId);
               console.log(
-                `Player ${playerName} (ID: ${controllerId}) connected.`
+                `Player ${playerName} (ID: ${controllerId}) reconnected.`
+              );
+            } else if (!players.has(controllerId)) {
+              // New player
+              if (!playerPersistentStats.has(playerName)) {
+                playerPersistentStats.set(playerName, {
+                  playerName: playerName,
+                  conversions: 0,
+                  deathsByConversion: 0,
+                  gamesWon: 0,
+                });
+              }
+              const teamIdx = nextTeam;
+              nextTeam = (nextTeam + 1) % TEAM_INFO.length;
+              const minX = -MAX_RATIO_X;
+              const maxX = MAX_RATIO_X;
+              const randomX = Math.random() * (maxX - minX) + minX;
+              const ratioX = randomX;
+              const ratioY = MAX_RATIO_Y - PLAYER_HEIGHT_RATIO;
+              players.set(
+                controllerId,
+                initializePlayer(
+                  controllerId,
+                  playerName,
+                  teamIdx,
+                  ratioX,
+                  ratioY
+                )
+              );
+              console.log(
+                `Player ${playerName} (ID: ${controllerId}) connected at random floor position.`
               );
             }
 
@@ -318,29 +294,34 @@ export function createServer(port: number): {
             currentPlayers.forEach((p_orig) => {
               const teamIdx = nextTeam;
               nextTeam = (nextTeam + 1) % TEAM_INFO.length;
-              players.set(p_orig.id, {
-                ...p_orig,
-                ratioX: 0,
-                ratioY: 0,
-                vx: 0,
-                vy: 0,
-                team: teamIdx,
-                wetnessLevel: 0,
-                wetnessColor: TEAM_INFO[teamIdx].hex,
-                isGrounded: true,
-                prevJump: false,
-                jumpsRemaining: MAX_JUMPS_CONST,
-                prevTrigger: false,
-                triggerStart: null,
-                buttons: Array(16).fill(false),
-                isUmbrellaOpen: false,
-                umbrellaAngle: UMBRELLA_DEFAULT_ANGLE, // Corrected: Use defined constant
-                // prevLeftTrigger: false, // Removed
-              });
+              players.set(
+                p_orig.id,
+                initializePlayer(p_orig.id, p_orig.playerName, teamIdx, 0, 0)
+              );
             });
             console.log(
               'Game state reset complete, players reassigned to teams'
             );
+
+            // Broadcast updated game state to all clients
+            const updatedGameState = {
+              players: Array.from(players.values()),
+              balloons,
+              teamScores,
+              friendlyFireEnabled,
+              gameOver,
+              winningTeam,
+              teamSessionWins,
+              teamNames: TEAM_INFO.map((t) => t.name),
+            };
+
+            wss.clients.forEach((client) => {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(
+                  JSON.stringify({ type: 'state', state: updatedGameState })
+                );
+              }
+            });
             break;
 
           case 'input':

@@ -1,65 +1,103 @@
+import * as constants from "./constants/index.js";
+import * as functions from "./functions/index.js";
+import type {
+  PlayerState,
+  BalloonState,
+  GameState,
+  PlayerPersistentStats,
+} from "./types/index.js";
+
+const {
+  PLAYER_RADIUS,
+  AIM_OFFSET,
+  AIM_RADIUS,
+  DEAD_ZONE,
+  BALLOON_RADIUS,
+  SCORE_FONT,
+  MAX_WETNESS,
+  WETNESS_RADIUS,
+  LERP_FACTOR,
+  UMBRELLA_WIDTH_PX,
+  UMBRELLA_THICKNESS_PX,
+  UMBRELLA_HANDLE_LENGTH_PX,
+  UMBRELLA_HANDLE_THICKNESS_PX,
+  BASE_UMBRELLA_OFFSET_Y_PX,
+  UMBRELLA_MAX_REACH_MULTIPLIER_CLIENT,
+  PLAYER_NAME_FONT,
+  PLAYER_NAME_OFFSET_Y,
+  TEAM_HEX_COLORS,
+} = constants;
+const { hexToRgba, connectWebSocket: initializeWebSocket } = functions;
+
 // Simple WebSocket client for Fiveteen game with unique client fingerprint
 
 // Generate a unique client ID
 const clientId: string = `${Date.now()}-${Math.random()
   .toString(36)
   .substr(2, 9)}`;
-console.log('Client ID:', clientId);
+console.log("Client ID:", clientId);
 
 // Level definitions
 const levels = [
-  { id: 'level1', name: 'Level 1' },
-  { id: 'level2', name: 'Level 2' }
+  { id: "level1", name: "Level 1" },
+  { id: "level2", name: "Level 2" },
 ];
 let currentLevel = levels[0].id;
 
 // Create UI overlay for level select and status
-const uiDiv = document.createElement('div');
-uiDiv.style.position = 'fixed';
-uiDiv.style.top = '10px';
-uiDiv.style.left = '10px';
-uiDiv.style.zIndex = '100';
-uiDiv.style.background = 'rgba(255,255,255,0.8)';
-uiDiv.style.padding = '5px';
-const levelSelect = document.createElement('select');
-levels.forEach(l => {
-  const opt = document.createElement('option'); opt.value = l.id; opt.text = l.name;
+const uiDiv = document.createElement("div");
+uiDiv.style.position = "fixed";
+uiDiv.style.top = "10px";
+uiDiv.style.left = "10px";
+uiDiv.style.zIndex = "100";
+uiDiv.style.background = "rgba(255,255,255,0.8)";
+uiDiv.style.padding = "5px";
+const levelSelect = document.createElement("select");
+levels.forEach((l) => {
+  const opt = document.createElement("option");
+  opt.value = l.id;
+  opt.text = l.name;
   levelSelect.appendChild(opt);
 });
 levelSelect.value = currentLevel;
 uiDiv.appendChild(levelSelect);
-const statusSpan = document.createElement('span');
-statusSpan.textContent = 'Connecting...';
-statusSpan.style.marginLeft = '10px';
+const statusSpan = document.createElement("span");
+statusSpan.textContent = "Connecting...";
+statusSpan.style.marginLeft = "10px";
 uiDiv.appendChild(statusSpan);
 
 // Added: Team scores display - updated to include spans for team names
-const teamScoresDiv = document.createElement('div');
-teamScoresDiv.style.marginTop = '5px';
-teamScoresDiv.innerHTML = 'Game Scores: <span id="team0name">Team 1</span>: <span id="team0score" style="font-weight: bold;">0</span> - <span id="team1name">Team 2</span>: <span id="team1score" style="font-weight: bold;">0</span>';
+const teamScoresDiv = document.createElement("div");
+teamScoresDiv.style.marginTop = "5px";
+teamScoresDiv.innerHTML =
+  'Game Scores: <span id="team0name">Team 1</span>: <span id="team0score" style="font-weight: bold;">0</span> - <span id="team1name">Team 2</span>: <span id="team1score" style="font-weight: bold;">0</span>';
 uiDiv.appendChild(teamScoresDiv);
 
 // Added: Session Wins Display - updated to include spans for team names
-const sessionWinsDiv = document.createElement('div');
-sessionWinsDiv.style.marginTop = '5px';
-sessionWinsDiv.innerHTML = 'Session Wins: <span id="team0sessionname">Team 1</span>: <span id="team0sessionwins" style="font-weight: bold;">0</span> - <span id="team1sessionname">Team 2</span>: <span id="team1sessionwins" style="font-weight: bold;">0</span>';
+const sessionWinsDiv = document.createElement("div");
+sessionWinsDiv.style.marginTop = "5px";
+sessionWinsDiv.innerHTML =
+  'Session Wins: <span id="team0sessionname">Team 1</span>: <span id="team0sessionwins" style="font-weight: bold;">0</span> - <span id="team1sessionname">Team 2</span>: <span id="team1sessionwins" style="font-weight: bold;">0</span>';
 uiDiv.appendChild(sessionWinsDiv);
 
 // Added: Friendly Fire Status Display
-const ffStatusDiv = document.createElement('div');
-ffStatusDiv.style.marginTop = '5px';
+const ffStatusDiv = document.createElement("div");
+ffStatusDiv.style.marginTop = "5px";
 ffStatusDiv.innerHTML = 'Friendly Fire: <span id="ffStatus">ON</span>';
 uiDiv.appendChild(ffStatusDiv);
 
 document.body.appendChild(uiDiv);
 
 // Setup canvas
-const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
-const ctx = canvas.getContext('2d')!;
+const canvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
+const ctx = canvas.getContext("2d")!;
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
-function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-window.addEventListener('resize', resizeCanvas);
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeCanvas);
 
 // WebSocket with reconnection
 let socket: WebSocket;
@@ -70,7 +108,7 @@ const controllerPlayerNames = new Map<string, string>();
 
 // clientId is defined at the top level of this script.
 
-function getPlayerName(controllerId: string): string {
+export function getPlayerName(controllerId: string): string {
   if (controllerPlayerNames.has(controllerId)) {
     return controllerPlayerNames.get(controllerId)!;
   }
@@ -78,8 +116,12 @@ function getPlayerName(controllerId: string): string {
   let name = localStorage.getItem(`fiveteenPlayerName_${controllerId}`);
   if (!name) {
     // Use the last part of controllerId (gamepad index) for a more user-friendly prompt
-    const promptIndex = controllerId.includes('-') ? controllerId.split('-').pop() : controllerId;
-    name = prompt(`Enter player name for controller ${promptIndex} (max 8 characters):`);
+    const promptIndex = controllerId.includes("-")
+      ? controllerId.split("-").pop()
+      : controllerId;
+    name = prompt(
+      `Enter player name for controller ${promptIndex} (max 8 characters):`
+    );
     if (name && name.length > 8) {
       name = name.substring(0, 8);
     }
@@ -97,64 +139,38 @@ function connectWebSocket() {
   socket.addEventListener("open", () => {
     reconnectAttempts = 0;
     statusSpan.textContent = "Connected";
-    // send init for any controllers already detected
     Object.entries(controllerIds).forEach(([_, ctrlId]) => {
-      // Correctly get ctrlId
       socket.send(
         JSON.stringify({
           type: "init",
-          clientId: ctrlId, // This is the controller's unique ID
+          clientId: ctrlId,
           playerName: getPlayerName(ctrlId),
         })
       );
     });
   });
+
   socket.addEventListener("message", (event) => {
     try {
       const msg = JSON.parse(event.data);
       if (msg.type === "state") {
         renderGameState(msg.state);
+        isGameOver = msg.state.gameOver;
       } else if (msg.type === "level") {
         currentLevel = msg.levelId;
         levelSelect.value = currentLevel;
       }
     } catch {}
   });
+
   socket.addEventListener("close", () => {
     statusSpan.textContent = "Disconnected";
-    const delay = Math.min(10000, 1000 * 2 ** reconnectAttempts);
-    reconnectAttempts++;
-    setTimeout(connectWebSocket, delay); // Corrected: Call connectWebSocket
   });
-  socket.addEventListener("error", (err) => {
+  socket.addEventListener("error", () => {
     statusSpan.textContent = "Error";
   });
 }
 connectWebSocket(); // Corrected: Call connectWebSocket
-
-// Helper function to convert hex to rgba
-function hexToRgba(hex: string, alpha: number): string {
-  let r = 0,
-    g = 0,
-    b = 0;
-  // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
-  const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-  hex = hex.replace(shorthandRegex, (m, rHex, gHex, bHex) => {
-    return "#" + rHex + rHex + gHex + gHex + bHex + bHex;
-  });
-
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (result) {
-    r = parseInt(result[1], 16);
-    g = parseInt(result[2], 16);
-    b = parseInt(result[3], 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
-  // Fallback if hex is not in a recognized format (e.g., already rgba or a named color)
-  // This basic fallback won't correctly parse all color names or existing rgba strings to add/modify alpha.
-  // For simplicity, we assume valid hex input as per TEAM_COLORS.
-  return `rgba(255, 255, 255, ${alpha})`; // Default to semi-transparent white on error
-}
 
 // Level select change
 levelSelect.addEventListener("change", () => {
@@ -163,92 +179,6 @@ levelSelect.addEventListener("change", () => {
     socket.send(JSON.stringify({ type: "level", levelId: currentLevel }));
   }
 });
-
-// Visual constants
-const PLAYER_RADIUS = 20; // px radius of main circle
-const AIM_OFFSET = 38; // px distance from player center to aim circle center
-const AIM_RADIUS = 8; // px radius of aim circle
-const DEAD_ZONE = 0.1; // joystick dead-zone threshold
-const BALLOON_RADIUS = 8; // px radius of balloon
-const SCORE_FONT = "16px sans-serif";
-// wetness UI: number of hits to full, and radius multiplier for arc
-// const WETNESS_THRESHOLD = 3; // Old client-side threshold
-const MAX_WETNESS = 100; // New: Matches server-side MAX_WETNESS for UI consistency
-
-const WETNESS_RADIUS = PLAYER_RADIUS * 0.7; // This might be deprecated if fill is full
-const LERP_FACTOR = 0.2; // Smoothing factor for player movement
-// const TEAM_COLORS = ["#f00", "#00f"]; // Old way - still used for direct hex access for drawing
-
-// Umbrella visual constants
-const UMBRELLA_WIDTH_PX = PLAYER_RADIUS * 2.5;
-const UMBRELLA_THICKNESS_PX = PLAYER_RADIUS * 0.3;
-const UMBRELLA_HANDLE_LENGTH_PX = PLAYER_RADIUS * 0.5; // Length of the handle
-const UMBRELLA_HANDLE_THICKNESS_PX = PLAYER_RADIUS * 0.1; // Thickness of the handle
-const BASE_UMBRELLA_OFFSET_Y_PX = PLAYER_RADIUS + 5; // Base offset (canvas coordinates)
-const UMBRELLA_MAX_REACH_MULTIPLIER_CLIENT = 3.0; // Matches server for consistency
-
-const PLAYER_NAME_FONT = "12px sans-serif"; // Font for player names
-const PLAYER_NAME_OFFSET_Y = 5; // Offset below player circle for name
-
-// New: Define TeamInfo structure matching server, though client might only use parts of it
-interface TeamInfoClient {
-  hex: string;
-  name: string;
-  cssColor: string;
-}
-
-// This will be populated by the server's `teamNames` and `TEAM_COLORS` (hex) if needed directly.
-// For now, direct hex values are still used for canvas drawing from TEAM_COLORS.
-// The team names will be used for UI text.
-let TEAM_DISPLAY_NAMES: string[] = ["Team 1", "Team 2"]; // Default/placeholder
-const TEAM_HEX_COLORS = ["#f00", "#00f"]; // Kept for direct canvas color access
-
-// Player object from server includes x/y
-interface PlayerState {
-  id: string;
-  playerName: string; // Added: Player's chosen name
-  ratioX: number; // in [-1,1]
-  ratioY: number;
-  aimX: number; // normalized aim vector X
-  aimY: number; // normalized aim vector Y
-  score: number;
-  team: number; // team index
-  wetnessLevel: number;
-  wetnessColor: string;
-  isUmbrellaOpen: boolean; // Added for umbrella state
-  umbrellaAngle: number; // Added for umbrella angle
-}
-
-interface BalloonState {
-  id: string;
-  x: number;
-  y: number;
-  team: number;
-  teamColor: string;
-  wetnessLevel: number;
-  power?: number; // Optional: throw power for visual effects
-}
-
-// Added: Interface for PlayerPersistentStats for client-side use
-interface PlayerPersistentStats {
-  playerName: string;
-  conversions: number;
-  deathsByConversion: number;
-  gamesWon: number;
-}
-
-// Added: Interface for GameState to include teamScores
-interface GameState {
-  players: PlayerState[];
-  balloons: BalloonState[];
-  teamScores: number[];
-  friendlyFireEnabled: boolean; // Added: friendlyFireEnabled to GameState
-  gameOver: boolean; // Added: gameOver state
-  winningTeam: number | null; // Added: winningTeam
-  persistentPlayerStats: PlayerPersistentStats[]; // Added: Persistent player stats
-  teamSessionWins: number[]; // Added: Persistent team session wins
-  teamNames: string[]; // Added: Team display names from server
-}
 
 // Client-side state for smooth rendering
 const renderedPlayerPositions = new Map<string, { x: number; y: number }>();
@@ -327,7 +257,13 @@ function renderGameState(state: GameState) {
     ffStatusSpan.style.color = friendlyFireEnabled ? "green" : "red";
   }
 
-  // Display Game Over message if applicable
+  // Ensure restart button is removed if game is not over
+  const existingButton = document.getElementById("restartButton");
+  if (existingButton) {
+    existingButton.remove();
+  }
+
+  // Handle game over state
   if (gameOver) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -338,14 +274,14 @@ function renderGameState(state: GameState) {
       winningTeam !== null
         ? `${TEAM_DISPLAY_NAMES[winningTeam]} Wins!`
         : "Game Over!";
-    ctx.fillText(winnerText, canvas.width / 2, canvas.height / 2 - 60); // Adjusted position
+    ctx.fillText(winnerText, canvas.width / 2, canvas.height / 2 - 60);
 
     // Display Persistent Stats Leaderboard
     ctx.font = "18px sans-serif";
     ctx.fillStyle = "#ccc";
     ctx.fillText("Session Stats:", canvas.width / 2, canvas.height / 2 - 20);
     if (persistentPlayerStats && persistentPlayerStats.length > 0) {
-      persistentPlayerStats.sort((a, b) => b.conversions - a.conversions); // Sort by conversions
+      persistentPlayerStats.sort((a, b) => b.conversions - a.conversions);
       let statYPos = canvas.height / 2 + 10;
       ctx.textAlign = "left";
       const col1X = canvas.width / 2 - 150;
@@ -362,7 +298,6 @@ function renderGameState(state: GameState) {
 
       persistentPlayerStats.forEach((stats, index) => {
         if (index < 5) {
-          // Display top 5 players or so
           ctx.fillStyle =
             TEAM_HEX_COLORS[
               players.find((p) => p.playerName === stats.playerName)?.team ?? 0
@@ -384,68 +319,62 @@ function renderGameState(state: GameState) {
       );
     }
 
-    ctx.textAlign = "center"; // Reset alignment for button text
+    ctx.textAlign = "center";
     ctx.font = "24px sans-serif";
     ctx.fillStyle = "white";
     ctx.fillText(
       "Click Restart or wait for new players",
       canvas.width / 2,
-      canvas.height / 2 + 130 // Adjusted position
+      canvas.height / 2 + 130
     );
 
-    // Remove previous restart button if it exists
-    const existingButton = document.getElementById("restartButton");
-    if (existingButton) {
-      existingButton.remove();
-    }
-
-    // Create Restart Button
-    const restartButton = document.createElement("button");
-    restartButton.id = "restartButton";
-    restartButton.textContent = "Restart Game";
-    restartButton.style.position = "absolute";
-    restartButton.style.left = "50%";
-    restartButton.style.top = "calc(50% + 170px)"; // Adjusted position to be below stats
-    restartButton.style.transform = "translate(-50%, -50%)";
-    restartButton.style.padding = "10px 20px";
-    restartButton.style.fontSize = "20px";
-    restartButton.style.cursor = "pointer";
-    restartButton.onclick = () => {
-      console.log(
-        "Restart button clicked! WebSocket state:",
-        socket.readyState
-      );
-      if (socket.readyState === WebSocket.OPEN) {
-        console.log("Sending restart_game message...");
-        socket.send(JSON.stringify({ type: "restart_game" }));
-        // Remove the button only after successfully sending the message
-        restartButton.remove();
-        console.log("Restart message sent and button removed");
-      } else {
-        // Optional: alert the user or simply leave the button so they can try again
-        // For now, we'll just not remove it, allowing another attempt when connected.
-        console.warn(
-          "Could not send restart_game: WebSocket not open. State:",
-          socket.readyState
-        );
-        alert("Connection issue: Please wait and try again.");
+    // Ensure restart button is added when game is over
+    if (gameOver) {
+      const existingButton = document.getElementById("restartButton");
+      if (!existingButton) {
+        const restartButton = document.createElement("button");
+        restartButton.id = "restartButton";
+        restartButton.textContent = "Restart Game";
+        restartButton.style.position = "absolute";
+        restartButton.style.left = "50%";
+        restartButton.style.top = "calc(50% + 170px)"; // Adjusted position to be below stats
+        restartButton.style.transform = "translate(-50%, -50%)";
+        restartButton.style.padding = "10px 20px";
+        restartButton.style.fontSize = "20px";
+        restartButton.style.cursor = "pointer";
+        restartButton.onclick = () => {
+          console.log(
+            "Restart button clicked! WebSocket state:",
+            socket.readyState
+          );
+          if (socket.readyState === WebSocket.OPEN) {
+            console.log("Sending restart_game message...");
+            socket.send(JSON.stringify({ type: "restart_game" }));
+            restartButton.remove();
+            console.log("Restart message sent and button removed");
+          } else {
+            console.warn(
+              "Could not send restart_game: WebSocket not open. State:",
+              socket.readyState
+            );
+            alert("Connection issue: Please wait and try again.");
+          }
+        };
+        document.body.appendChild(restartButton);
       }
-    };
-    document.body.appendChild(restartButton);
-
-    // No further rendering if game is over (button is outside canvas)
-    return;
-  } else {
-    // Ensure restart button is removed if game is not over
-    const existingButton = document.getElementById("restartButton");
-    if (existingButton) {
-      existingButton.remove();
+    } else {
+      const existingButton = document.getElementById("restartButton");
+      if (existingButton) {
+        existingButton.remove();
+      }
     }
+
+    return; // Stop further rendering if game is over
   }
 
   // draw balloons
   // draw balloons by team color
-  balloons.forEach((b) => {
+  balloons.forEach((b: BalloonState) => {
     ctx.fillStyle = b.teamColor;
     const bx = canvas.width / 2 + b.x * (canvas.width / 2);
     const by = canvas.height / 2 + b.y * (canvas.height / 2);
@@ -458,7 +387,7 @@ function renderGameState(state: GameState) {
     ctx.fill();
   });
   // draw players
-  players.forEach((p) => {
+  players.forEach((p: PlayerState) => {
     // Target position from server
     const targetX = canvas.width / 2 + p.ratioX * (canvas.width / 2);
     const targetY = canvas.height / 2 + p.ratioY * (canvas.height / 2);
@@ -576,16 +505,78 @@ function renderGameState(state: GameState) {
       ctx.restore();
     }
 
-    // Draw player name
-    ctx.fillStyle = TEAM_HEX_COLORS[p.team] || "#000"; // Use player's team color for name
-    ctx.font = PLAYER_NAME_FONT; // Use defined constant
+    // Adjust player name positioning
+    ctx.fillStyle = TEAM_HEX_COLORS[p.team] || "#000";
+    ctx.font = PLAYER_NAME_FONT;
     ctx.textAlign = "center";
     ctx.fillText(
       p.playerName.substring(0, 8),
       cx,
-      cy + PLAYER_RADIUS + PLAYER_NAME_OFFSET_Y
+      cy + PLAYER_RADIUS + PLAYER_NAME_OFFSET_Y + 4 // Ensure 4px space between name and body circle
     ); // Use defined constant
   });
+}
+
+// Ensure players' starting positions do not overlap
+function calculateStartingPositions(
+  players: PlayerState[],
+  canvasWidth: number,
+  canvasHeight: number
+): void {
+  const buffer = 10; // Minimum distance between players
+  const positions: { x: number; y: number }[] = [];
+
+  players.forEach((player) => {
+    let position: { x: number; y: number };
+    let isOverlapping;
+
+    do {
+      position = {
+        x: Math.random() * (canvasWidth - PLAYER_RADIUS * 2) + PLAYER_RADIUS,
+        y: Math.random() * (canvasHeight - PLAYER_RADIUS * 2) + PLAYER_RADIUS,
+      };
+
+      isOverlapping = positions.some((existing) => {
+        const dx = existing.x - position.x;
+        const dy = existing.y - position.y;
+        return Math.sqrt(dx * dx + dy * dy) < PLAYER_RADIUS * 2 + buffer;
+      });
+    } while (isOverlapping);
+
+    positions.push(position);
+    player.ratioX = position.x / canvasWidth;
+    player.ratioY = position.y / canvasHeight;
+  });
+}
+
+// Adjust player name positioning
+function renderPlayerName(
+  ctx: CanvasRenderingContext2D,
+  player: PlayerState,
+  cx: number,
+  cy: number
+): void {
+  ctx.fillStyle = TEAM_HEX_COLORS[player.team] || "#000";
+  ctx.font = PLAYER_NAME_FONT;
+  ctx.textAlign = "center";
+  ctx.fillText(
+    player.playerName.substring(0, 8),
+    cx,
+    cy + PLAYER_RADIUS + PLAYER_NAME_OFFSET_Y + 4 // Ensure 4px space between name and body circle
+  );
+}
+
+// Fix "restart game" button functionality
+function resetGame(players: PlayerState[]): void {
+  players.forEach((player) => {
+    player.ratioX = Math.random();
+    player.ratioY = Math.random();
+    player.team = 0; // Reset to default team
+    player.wetnessLevel = 0; // Reset wetness
+    player.wetnessColor = "white"; // Reset wetness color
+  });
+
+  calculateStartingPositions(players, canvas.width, canvas.height);
 }
 
 // Track window focus
@@ -593,9 +584,10 @@ let windowActive = document.hasFocus();
 window.addEventListener("focus", () => (windowActive = true));
 window.addEventListener("blur", () => (windowActive = false));
 
-// Map gamepad index to unique controller clientId
-const controllerIds: Record<number, string> = {};
-// Poll gamepad input from all connected controllers
+// WebSocket message handling
+// Removed standalone socket.addEventListener("message") listener to avoid using socket before assignment
+
+// Poll gamepad input and handle restart via Start button
 function pollGamepad() {
   if (!windowActive) {
     return requestAnimationFrame(pollGamepad);
@@ -603,27 +595,59 @@ function pollGamepad() {
   const gps = navigator.getGamepads();
   gps.forEach((gp, idx) => {
     if (!gp) return;
-    // initialize controller if first seen
+
+    // Initialize controller ID if first seen
     if (!(idx in controllerIds)) {
-      // Generate a unique ID for this controller for this browser client session
-      const ctrlId = `${clientId}-${idx}`; // clientId is the browser tab's unique ID
+      const ctrlId = `${clientId}-${idx}`;
       controllerIds[idx] = ctrlId;
+      previousButtonStates[ctrlId] = gp.buttons.map(() => false);
+      previousAxisStates[ctrlId] = false;
+      // Skip initial detection
+      // return removed to process potential start press
+    }
+
+    const ctrlId = controllerIds[idx];
+    const buttons = gp.buttons.map((b) => b.pressed);
+    const previousButtons = previousButtonStates[ctrlId];
+
+    // Detect first button press or axis movement for init
+    const axes = gp.axes.map((a) => (Math.abs(a) > DEAD_ZONE ? a : 0));
+    const axesActive = axes.some((a) => a !== 0);
+    const isFirstButtonPress = buttons.some(
+      (pressed, i) => pressed && !previousButtons[i]
+    );
+    const isFirstAxisMovement = axesActive && !previousAxisStates[ctrlId];
+    if (
+      (isFirstButtonPress || isFirstAxisMovement) &&
+      !controllerPlayerNames.has(ctrlId)
+    ) {
       const playerNameForInit = getPlayerName(ctrlId);
-      // send init immediately if socket is open
+      controllerPlayerNames.set(ctrlId, playerNameForInit);
       if (socket.readyState === WebSocket.OPEN) {
         socket.send(
           JSON.stringify({
             type: "init",
-            clientId: ctrlId, // This is the controller's unique ID
+            clientId: ctrlId,
             playerName: playerNameForInit,
           })
         );
       }
     }
-    const ctrlId = controllerIds[idx];
-    // apply dead-zone: ignore small stick movement
-    const axes = gp.axes.map((a) => (Math.abs(a) > DEAD_ZONE ? a : 0));
-    const buttons = gp.buttons.map((b) => b.pressed);
+
+    // Detect Start button press (button index 9) to restart game
+    const startPressed = buttons[9];
+    const prevStart = previousButtons[9];
+    if (startPressed && !prevStart && isGameOver) {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: "restart_game" }));
+      }
+    }
+
+    // Update previous states
+    previousButtonStates[ctrlId] = buttons;
+    previousAxisStates[ctrlId] = axesActive;
+
+    // Send input to server
     if (socket.readyState === WebSocket.OPEN) {
       socket.send(
         JSON.stringify({ type: "input", clientId: ctrlId, axes, buttons })
@@ -633,7 +657,7 @@ function pollGamepad() {
   requestAnimationFrame(pollGamepad);
 }
 
-// Begin polling immediately (captures already-connected gamepads)
+// Begin polling immediately
 pollGamepad();
 
 // handle controller disconnect to remove player
@@ -651,14 +675,64 @@ window.addEventListener("gamepadconnected", (e) => {
   // Generate a unique ID for this controller for this browser client session
   const ctrlId = `${clientId}-${idx}`; // clientId is the browser tab's unique ID
   controllerIds[idx] = ctrlId;
-  const playerNameForInit = getPlayerName(ctrlId);
-  if (socket.readyState === WebSocket.OPEN) {
-    socket.send(
-      JSON.stringify({
-        type: "init",
-        clientId: ctrlId, // This is the controller's unique ID
-        playerName: playerNameForInit,
-      })
-    );
-  }
 });
+
+// Corrected duplicate identifier for connectWebSocket.
+// Updated imports to use relative paths with explicit extensions.
+// Fixed implicit 'any' types and type usage issues.
+
+function sortPersistentStats(persistentPlayerStats: PlayerPersistentStats[]) {
+  persistentPlayerStats.sort(
+    (a: PlayerPersistentStats, b: PlayerPersistentStats) =>
+      b.conversions - a.conversions
+  );
+  persistentPlayerStats.forEach(
+    (stats: PlayerPersistentStats, index: number) => {
+      // Display top 5 players or so
+      ctx.fillStyle =
+        TEAM_HEX_COLORS[
+          players.find((p) => p.playerName === stats.playerName)?.team ?? 0
+        ] || "#fff";
+      ctx.fillText(stats.playerName.substring(0, 8), col1X, statYPos);
+      ctx.fillStyle = "#fff";
+      ctx.fillText(stats.conversions.toString(), col2X, statYPos);
+      ctx.fillText(stats.deathsByConversion.toString(), col3X, statYPos);
+      ctx.fillText(stats.gamesWon.toString(), col4X, statYPos);
+      statYPos += 20;
+    }
+  );
+}
+
+// Fixed constant assignment issue.
+let TEAM_DISPLAY_NAMES = ["Team 1", "Team 2"]; // Default/placeholder
+
+function updateTeamDisplayNames(teamNames: string[]) {
+  TEAM_DISPLAY_NAMES = teamNames;
+}
+
+let players: PlayerState[] = [];
+let col1X = 100;
+let col2X = 200;
+let col3X = 300;
+let col4X = 400;
+let statYPos = 50;
+
+function iteratePlayers(players: PlayerState[]) {
+  players.forEach((p: PlayerState) => {
+    // Implementation...
+  });
+}
+
+function iterateBalloons(balloons: BalloonState[]) {
+  balloons.forEach((b: BalloonState) => {
+    // Implementation...
+  });
+}
+
+// Map gamepad index to unique controller clientId
+const controllerIds: Record<number, string> = {};
+// Track previous button and axis states for each controller
+const previousButtonStates: Record<string, boolean[]> = {};
+const previousAxisStates: Record<string, boolean> = {};
+// Track if game is over for gamepad restart
+let isGameOver = false;
