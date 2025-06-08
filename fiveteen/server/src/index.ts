@@ -726,6 +726,17 @@ export function createServer(port: number): {
     }
   });
 
+  // Start the server
+  // server.listen(port, () => {
+  //   console.log(`Server listening on port ${port}`);
+  // });
+
+  // Use Vercel's PORT environment variable if available, otherwise use the provided port
+  const vercelPort = parseInt(process.env.PORT || port.toString(), 10);
+  server.listen(vercelPort, () => {
+    console.log(`[SERVER LOG] Server listening on port ${vercelPort}`);
+  });
+
   // console.log('Setting up main game loop (setInterval)...'); // Existing log
   const gameLoopInterval = setInterval(() => {
     // console.log('Main game loop tick.'); // Added log
