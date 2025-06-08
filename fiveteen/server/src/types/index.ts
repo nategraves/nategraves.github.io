@@ -45,7 +45,7 @@ export interface GameState {
   teamSessionWins: number[];
   teamNames: string[];
   // Tilemap data for level collision
-  tilemap: Tilemap;
+  tilemap?: Tilemap | null; // Made optional and nullable
 }
 
 // Define tilemap structure matching Tiled JSON

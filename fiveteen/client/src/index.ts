@@ -35,7 +35,6 @@ const { hexToRgba, connectWebSocket: initializeWebSocket } = functions;
 const clientId: string = `${Date.now()}-${Math.random()
   .toString(36)
   .substr(2, 9)}`;
-console.log("Client ID:", clientId);
 
 // Level definitions
 const levels = [
@@ -87,9 +86,9 @@ ffStatusDiv.innerHTML = 'Friendly Fire: <span id="ffStatus">ON</span>';
 uiDiv.appendChild(ffStatusDiv);
 
 // Mute/Unmute button
-const muteButton = document.createElement('button');
-muteButton.textContent = 'Unmute Audio';
-muteButton.style.marginLeft = '10px';
+const muteButton = document.createElement("button");
+muteButton.textContent = "Unmute Audio";
+muteButton.style.marginLeft = "10px";
 uiDiv.appendChild(muteButton);
 
 document.body.appendChild(uiDiv);
@@ -141,49 +140,69 @@ export function getPlayerName(controllerId: string): string {
 }
 
 function connectWebSocket() {
-  const protocol = import.meta.env.PROD ? 'wss' : 'ws';
-  const host = import.meta.env.PROD ? 'fiveteen.netlify.app' : window.location.hostname;
-  const port = import.meta.env.PROD ? '' : ':8080';
-  socket = new WebSocket(`${protocol}://${host}${port}`);
+  try {
+    const protocol = import.meta.env.PROD ? "wss" : "ws";
+    const host = import.meta.env.PROD
+      ? "fiveteen.netlify.app"
+      : window.location.hostname;
+    const port = import.meta.env.PROD ? "" : ":8080";
+    const wsUrl = `${protocol}://${host}${port}`;
 
-  socket.addEventListener("open", () => {
-    reconnectAttempts = 0;
-    statusSpan.textContent = "Connected";
-    Object.entries(controllerIds).forEach(([_, ctrlId]) => {
-      socket.send(
-        JSON.stringify({
-          type: "init",
-          clientId: ctrlId,
-          playerName: getPlayerName(ctrlId),
-        })
-      );
+    socket = new WebSocket(wsUrl);
+
+    socket.addEventListener("open", () => {
+      reconnectAttempts = 0;
+      statusSpan.textContent = "Connected";
     });
-  });
 
-  socket.addEventListener('message', (event) => {
-    if (event.data instanceof Blob) {
-      handleAudioBlob(event.data);
-      return;
-    }
-    try {
-      const msg = JSON.parse(event.data);
-      if (msg.type === "state") {
-        renderGameState(msg.state);
-        isGameOver = msg.state.gameOver;
-      } else if (msg.type === "level") {
-        currentLevel = msg.levelId;
-        levelSelect.value = currentLevel;
+    socket.addEventListener("message", (event) => {
+      if (event.data instanceof Blob) {
+        handleAudioBlob(event.data);
+        return;
       }
-    } catch {}
-  });
+      try {
+        const msg = JSON.parse(event.data as string);
+        if (msg.type === "state") {
+          renderGameState(msg.state);
+          isGameOver = msg.state.gameOver;
+        } else if (msg.type === "level") {
+          currentLevel = msg.levelId;
+          levelSelect.value = currentLevel;
+        }
+      } catch (e) {
+        console.error(
+          "Error parsing message data:",
+          e,
+          "Raw data:",
+          event.data
+        );
+      }
+    });
 
-  socket.addEventListener("close", () => {
-    statusSpan.textContent = "Disconnected";
-  });
-  socket.addEventListener("error", () => {
-    statusSpan.textContent = "Error";
-  });
+    socket.addEventListener("close", () => {
+      statusSpan.textContent = "Disconnected";
+      // Consider adding reconnection logic here if desired, e.g.:
+      // if (reconnectAttempts < 5) { // Limit reconnection attempts
+      //   reconnectAttempts++;
+      //   console.log(`Attempting to reconnect... (Attempt ${reconnectAttempts})`);
+      //   setTimeout(connectWebSocket, 5000); // Reconnect after 5 seconds
+      // } else {
+      //   console.error("Max reconnection attempts reached.");
+      // }
+    });
+
+    socket.addEventListener("error", (event) => {
+      console.error("connectWebSocket: WebSocket error observed:", event);
+      statusSpan.textContent = "Error";
+    });
+  } catch (error) {
+    console.error(
+      "connectWebSocket: CRITICAL ERROR in function execution:",
+      error
+    );
+  }
 }
+
 connectWebSocket(); // Corrected: Call connectWebSocket
 
 // Level select change
@@ -199,7 +218,6 @@ const renderedPlayerPositions = new Map<string, { x: number; y: number }>();
 
 // Render players using server‐driven positions
 function renderGameState(state: GameState) {
-  // Changed: Parameter to GameState
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const {
     players,
@@ -358,15 +376,9 @@ function renderGameState(state: GameState) {
         restartButton.style.fontSize = "20px";
         restartButton.style.cursor = "pointer";
         restartButton.onclick = () => {
-          console.log(
-            "Restart button clicked! WebSocket state:",
-            socket.readyState
-          );
           if (socket.readyState === WebSocket.OPEN) {
-            console.log("Sending restart_game message...");
             socket.send(JSON.stringify({ type: "restart_game" }));
             restartButton.remove();
-            console.log("Restart message sent and button removed");
           } else {
             console.warn(
               "Could not send restart_game: WebSocket not open. State:",
@@ -385,20 +397,6 @@ function renderGameState(state: GameState) {
     }
 
     return; // Stop further rendering if game is over
-  }
-
-  // Draw tilemap (simple grid) as background
-  if (tilemap) {
-    const cellW = canvas.width / tilemap.width;
-    const cellH = canvas.height / tilemap.height;
-    for (let y = 0; y < tilemap.height; y++) {
-      for (let x = 0; x < tilemap.width; x++) {
-        if (tilemap.data[y * tilemap.width + x] !== 0) {
-          ctx.fillStyle = '#888';
-          ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
-        }
-      }
-    }
   }
 
   // draw balloons
@@ -625,33 +623,44 @@ function pollGamepad() {
   gps.forEach((gp, idx) => {
     if (!gp) return;
 
-    // Initialize controller ID if first seen
-    if (!(idx in controllerIds)) {
-      const ctrlId = `${clientId}-${idx}`;
+    const ctrlId = controllerIds[idx] || `${clientId}-${idx}`; // Get existing or generate new
+
+    // Initialize controller states if first time seeing this gamepad index
+    if (!controllerIds[idx]) {
       controllerIds[idx] = ctrlId;
+      // Initialize to a neutral state so the first actual input is detected by the main logic below
       previousButtonStates[ctrlId] = gp.buttons.map(() => false);
       previousAxisStates[ctrlId] = false;
-      // Skip initial detection
-      // return removed to process potential start press
+      // The previous custom block for immediate init on detection is removed.
+      // The main logic below will now handle it correctly due to neutral previous states.
     }
 
-    const ctrlId = controllerIds[idx];
     const buttons = gp.buttons.map((b) => b.pressed);
-    const previousButtons = previousButtonStates[ctrlId];
-
-    // Detect first button press or axis movement for init
     const axes = gp.axes.map((a) => (Math.abs(a) > DEAD_ZONE ? a : 0));
     const axesActive = axes.some((a) => a !== 0);
+
+    // Ensure previous states are defined (they should be by now, but as a safeguard)
+    if (previousButtonStates[ctrlId] === undefined) {
+      previousButtonStates[ctrlId] = gp.buttons.map(() => false);
+    }
+    if (previousAxisStates[ctrlId] === undefined) {
+      previousAxisStates[ctrlId] = false;
+    }
+
+    const previousButtons = previousButtonStates[ctrlId];
+    const previousActive = previousAxisStates[ctrlId];
+
     const isFirstButtonPress = buttons.some(
       (pressed, i) => pressed && !previousButtons[i]
     );
-    const isFirstAxisMovement = axesActive && !previousAxisStates[ctrlId];
+    const isFirstAxisMovement = axesActive && !previousActive;
+
     if (
       (isFirstButtonPress || isFirstAxisMovement) &&
-      !controllerPlayerNames.has(ctrlId)
+      !controllerPlayerNames.has(ctrlId) // This check ensures we only prompt if name is not yet set
     ) {
       const playerNameForInit = getPlayerName(ctrlId);
-      controllerPlayerNames.set(ctrlId, playerNameForInit);
+
       if (socket.readyState === WebSocket.OPEN) {
         socket.send(
           JSON.stringify({
@@ -660,19 +669,15 @@ function pollGamepad() {
             playerName: playerNameForInit,
           })
         );
+      } else {
+        console.warn(
+          `pollGamepad: Cannot send init for ${ctrlId}. WebSocket not open. State: ${socket.readyState}. Will allow retry.`
+        );
+        controllerPlayerNames.delete(ctrlId);
       }
     }
 
-    // Detect Start button press (button index 9) to restart game
-    const startPressed = buttons[9];
-    const prevStart = previousButtons[9];
-    if (startPressed && !prevStart && isGameOver) {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: "restart_game" }));
-      }
-    }
-
-    // Update previous states
+    // Update previous states for the next poll cycle
     previousButtonStates[ctrlId] = buttons;
     previousAxisStates[ctrlId] = axesActive;
 
@@ -700,10 +705,14 @@ window.addEventListener("gamepaddisconnected", (e) => {
 });
 // handle controller reconnect to show player again
 window.addEventListener("gamepadconnected", (e) => {
-  const idx = e.gamepad.index;
-  // Generate a unique ID for this controller for this browser client session
-  const ctrlId = `${clientId}-${idx}`; // clientId is the browser tab's unique ID
+  const gp = e.gamepad; // Get the gamepad object
+  const idx = gp.index;
+  const ctrlId = `${clientId}-${idx}`;
   controllerIds[idx] = ctrlId;
+
+  // Initialize to a neutral state, so the first actual input change is detected by pollGamepad
+  previousButtonStates[ctrlId] = gp.buttons.map(() => false);
+  previousAxisStates[ctrlId] = false;
 });
 
 // Corrected duplicate identifier for connectWebSocket.
