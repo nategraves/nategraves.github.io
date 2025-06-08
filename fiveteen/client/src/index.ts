@@ -211,6 +211,7 @@ function renderGameState(state: GameState) {
     persistentPlayerStats, // Destructure new stats
     teamSessionWins, // Destructure new stats
     teamNames, // Destructure new team names
+    tilemap,
   } = state; // Destructure state
 
   // Update team display names if provided
@@ -384,6 +385,20 @@ function renderGameState(state: GameState) {
     }
 
     return; // Stop further rendering if game is over
+  }
+
+  // Draw tilemap (simple grid) as background
+  if (tilemap) {
+    const cellW = canvas.width / tilemap.width;
+    const cellH = canvas.height / tilemap.height;
+    for (let y = 0; y < tilemap.height; y++) {
+      for (let x = 0; x < tilemap.width; x++) {
+        if (tilemap.data[y * tilemap.width + x] !== 0) {
+          ctx.fillStyle = '#888';
+          ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
+        }
+      }
+    }
   }
 
   // draw balloons

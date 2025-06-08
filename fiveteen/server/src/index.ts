@@ -3,6 +3,8 @@ import WebSocket, { WebSocketServer } from 'ws';
 import * as constants from './constants/index';
 import * as functions from './functions/index';
 import * as types from './types/index';
+import { GameState } from './types/index';
+import { tileSize, mapWidth, mapHeight, layers } from './constants/tilemap';
 
 // Level bounds constants
 const LEVEL_WIDTH = 1000;
@@ -515,6 +517,20 @@ export function createServer(port: number): {
 
   // Game loop: physics + broadcast
   const loop = setInterval(() => {
+    // Prepare tile collision helpers
+    const collisionData = layers.find(l => l.name === 'Collision')?.data || [];
+    function isSolidTile(ratioX: number, ratioY: number): boolean {
+      const xPx = (ratioX + 1) * HALF_W;
+      const yPx = HALF_H - ratioY * HALF_H;
+      const tx = Math.floor(xPx / tileSize);
+      const ty = Math.floor((HALF_H - yPx) / tileSize) * (tileSize / tileSize); // convert back? adjust yPx calc
+      const index = ty * mapWidth + tx;
+      const tileId = collisionData[index] || 0;
+      // slope tiles are partially solid
+      if (tileId === 2 || tileId === 3) return false;
+      return tileId !== 0;
+    }
+
     const now = Date.now();
     const dt = (now - (lastTick || now)) / 1000; // delta time in seconds
     lastTick = now;
@@ -682,6 +698,10 @@ export function createServer(port: number): {
 
     // Player physics and updates
     for (const p of players.values()) {
+      // Capture previous for axis-wise collision
+      const prevX = p.ratioX;
+      const prevY = p.ratioY;
+
       // Apply gravity
       let currentGravity = GRAVITY;
       let currentTerminalVelocity = TERMINAL_VELOCITY_CONST;
@@ -702,9 +722,35 @@ export function createServer(port: number): {
       p.vy += currentGravity * dt;
       p.vy = Math.min(p.vy, currentTerminalVelocity); // Apply terminal velocity
 
-      // update position based on velocity
+      // update horizontal position
       p.ratioX += p.vx * dt;
+      // horizontal tile collision
+      if (isSolidTile(p.ratioX, prevY)) { p.ratioX = prevX; p.vx = 0; }
+      // update vertical position
       p.ratioY += p.vy * dt;
+      // slope tile resolution
+      const xPx = (p.ratioX + 1) * HALF_W;
+      const yPx = HALF_H - p.ratioY * HALF_H;
+      const tx = Math.floor(xPx / tileSize);
+      const ty = Math.floor((HALF_H - yPx) / tileSize);
+      const tileId = collisionData[ty * mapWidth + tx] || 0;
+      if (tileId === 2 || tileId === 3) {
+        const localX = xPx - tx * tileSize;
+        const newYLocal = tileId === 2
+          ? tileSize - localX   // slope rising left-to-right
+          : localX;            // slope falling
+        const worldY = ty * tileSize + newYLocal;
+        p.ratioY = (HALF_H - worldY) / HALF_H;
+        p.vy = 0;
+        p.isGrounded = true;
+        p.jumpsRemaining = MAX_JUMPS_CONST;
+      } else if (isSolidTile(p.ratioX, p.ratioY)) {
+        // box collision fallback
+        p.ratioY = prevY;
+        p.vy = 0;
+        p.isGrounded = true;
+        p.jumpsRemaining = MAX_JUMPS_CONST;
+      }
 
       // collision with ground
       if (p.ratioY > MAX_RATIO_Y) {
@@ -782,16 +828,23 @@ export function createServer(port: number): {
     const numPlayers = players.size;
     if (numPlayers === 0 && balloons.length === 0 && !gameOver) return;
 
-    const gameState: GameState = {
+    const gameState: types.GameState = {
       players: Array.from(players.values()),
       balloons,
       teamScores,
       friendlyFireEnabled,
-      gameOver, // Include game over state
-      winningTeam, // Include winning team
+      gameOver,
+      winningTeam,
       persistentPlayerStats: persistentPlayerStatsArray,
       teamSessionWins,
       teamNames: TEAM_INFO.map((t) => t.name),
+      // include tilemap for client collision and rendering
+      tilemap: {
+        width: mapWidth,
+        height: mapHeight,
+        data: layers.find((l) => l.name === 'Collision')?.data || [],
+        tileSize,
+      },
     };
     const payload = JSON.stringify({ type: 'state', state: gameState });
     wss.clients.forEach((client) => {

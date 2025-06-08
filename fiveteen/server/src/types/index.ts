@@ -44,6 +44,16 @@ export interface GameState {
   persistentPlayerStats: PlayerPersistentStats[];
   teamSessionWins: number[];
   teamNames: string[];
+  // Tilemap data for level collision
+  tilemap: Tilemap;
+}
+
+// Define tilemap structure matching Tiled JSON
+export interface Tilemap {
+  width: number;
+  height: number;
+  data: number[];
+  tileSize: number;
 }
 
 export interface PlayerPersistentStats {

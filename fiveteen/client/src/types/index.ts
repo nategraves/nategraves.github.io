@@ -40,4 +40,11 @@ export interface GameState {
   persistentPlayerStats: PlayerPersistentStats[];
   teamSessionWins: number[];
   teamNames: string[];
+  // Tilemap collision and rendering data
+  tilemap: {
+    width: number;
+    height: number;
+    data: number[];
+    tileSize: number;
+  };
 }
