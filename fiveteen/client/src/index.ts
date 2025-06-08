@@ -86,6 +86,12 @@ ffStatusDiv.style.marginTop = "5px";
 ffStatusDiv.innerHTML = 'Friendly Fire: <span id="ffStatus">ON</span>';
 uiDiv.appendChild(ffStatusDiv);
 
+// Mute/Unmute button
+const muteButton = document.createElement('button');
+muteButton.textContent = 'Unmute Audio';
+muteButton.style.marginLeft = '10px';
+uiDiv.appendChild(muteButton);
+
 document.body.appendChild(uiDiv);
 
 // Setup canvas
@@ -154,7 +160,11 @@ function connectWebSocket() {
     });
   });
 
-  socket.addEventListener("message", (event) => {
+  socket.addEventListener('message', (event) => {
+    if (event.data instanceof Blob) {
+      handleAudioBlob(event.data);
+      return;
+    }
     try {
       const msg = JSON.parse(event.data);
       if (msg.type === "state") {
@@ -740,3 +750,54 @@ const previousButtonStates: Record<string, boolean[]> = {};
 const previousAxisStates: Record<string, boolean> = {};
 // Track if game is over for gamepad restart
 let isGameOver = false;
+
+// Audio handling variables
+let mediaRecorder: MediaRecorder | null = null;
+let audioStream: MediaStream | null = null;
+let audioMuted = true;
+
+function handleAudioBlob(blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const audio = new Audio(url);
+  audio.play().catch(() => {});
+  audio.onended = () => URL.revokeObjectURL(url);
+}
+
+function startAudioCapture() {
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      audioStream = stream;
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = (e) => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(e.data);
+        }
+      };
+      mediaRecorder.start(250); // emit 250ms chunks
+    })
+    .catch(() => {
+      audioMuted = true;
+      muteButton.textContent = 'Unmute Audio';
+    });
+}
+
+function stopAudioCapture() {
+  if (mediaRecorder) mediaRecorder.stop();
+  if (audioStream) audioStream.getTracks().forEach(t => t.stop());
+  mediaRecorder = null;
+  audioStream = null;
+}
+
+function toggleAudio() {
+  if (audioMuted) {
+    startAudioCapture();
+    muteButton.textContent = 'Mute Audio';
+  } else {
+    stopAudioCapture();
+    muteButton.textContent = 'Unmute Audio';
+  }
+  audioMuted = !audioMuted;
+}
+
+// Mute/Unmute button functionality
+muteButton.addEventListener('click', toggleAudio);

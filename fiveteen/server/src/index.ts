@@ -167,6 +167,15 @@ export function createServer(port: number): {
     clientAssociatedControllerIds.set(ws, new Set());
 
     ws.on('message', (data: WebSocket.Data) => {
+      // If this is binary audio data, broadcast to other clients
+      if (typeof data !== 'string') {
+        wss.clients.forEach((client) => {
+          if (client !== ws && client.readyState === WebSocket.OPEN) {
+            client.send(data);
+          }
+        });
+        return;
+      }
       try {
         const msg = JSON.parse(data.toString()) as IncomingMessageAll;
         const currentControllerClientIds =
