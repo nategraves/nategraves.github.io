@@ -135,7 +135,11 @@ export function getPlayerName(controllerId: string): string {
 }
 
 function connectWebSocket() {
-  socket = new WebSocket(`ws://${window.location.hostname}:8080`);
+  const protocol = import.meta.env.PROD ? 'wss' : 'ws';
+  const host = import.meta.env.PROD ? 'fiveteen.netlify.app' : window.location.hostname;
+  const port = import.meta.env.PROD ? '' : ':8080';
+  socket = new WebSocket(`${protocol}://${host}${port}`);
+
   socket.addEventListener("open", () => {
     reconnectAttempts = 0;
     statusSpan.textContent = "Connected";

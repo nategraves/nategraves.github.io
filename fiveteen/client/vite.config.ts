@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   root: 'src',
-  base: './',
+  base: mode === 'production' ? 'https://fiveteen.netlify.app/' : './',
   server: {
     open: true,
     port: 3000
@@ -11,4 +11,4 @@ export default defineConfig({
     outDir: '../dist',
     emptyOutDir: true
   }
-});
+}));
