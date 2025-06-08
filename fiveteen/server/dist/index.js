@@ -288,8 +288,28 @@ function createServer(port) {
                                                 gamesWon: 0,
                                             });
                                         }
-                                        const teamIdx = nextTeam;
-                                        nextTeam = (nextTeam + 1) % TEAM_INFO.length;
+                                        // Determine team with the fewest players
+                                        const teamCounts = new Array(TEAM_INFO.length).fill(0);
+                                        for (const p of players.values()) {
+                                            if (p.team >= 0 && p.team < teamCounts.length) {
+                                                teamCounts[p.team]++;
+                                            }
+                                        }
+                                        let targetTeamIdx = 0;
+                                        if (TEAM_INFO.length > 0) {
+                                            let minPlayers = teamCounts[0];
+                                            for (let i = 1; i < teamCounts.length; i++) {
+                                                if (teamCounts[i] < minPlayers) {
+                                                    minPlayers = teamCounts[i];
+                                                    targetTeamIdx = i;
+                                                }
+                                            }
+                                        }
+                                        // If all teams have equal players, it will default to the first team (index 0)
+                                        // or the first one encountered with the minimum count.
+                                        const teamIdx = targetTeamIdx; // Assign to team with fewest players
+                                        // const teamIdx = nextTeam; // OLD LOGIC
+                                        // nextTeam = (nextTeam + 1) % TEAM_INFO.length; // OLD LOGIC - nextTeam is not incremented here anymore for this path
                                         const { ratioX, ratioY } = (0, index_1.randomFloorPosition)(); // Get random position
                                         players.set(controllerId, (0, index_1.initializePlayer)(
                                         // Calling imported function
