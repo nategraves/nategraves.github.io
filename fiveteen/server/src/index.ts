@@ -1,10 +1,20 @@
 import http from 'http';
 import WebSocket, { WebSocketServer } from 'ws';
 import * as types from './types/index';
+import type {
+  GameConstants,
+  Player,
+  GameObject,
+  GameSettings,
+  PlayerPersistentStats,
+  TeamInfo as TeamInfoType,
+} from './types/index';
 import {
   initializePlayer,
   randomFloorPosition,
-  // updateGamePhysics, // We will manage physics updates differently
+  updateSinglePlayerPhysics, // Import these when ready
+  updateBalloons,
+  handleCollisions,
 } from './functions/index';
 import {
   kv, // Import the kv client
@@ -18,94 +28,87 @@ import {
   removeActivePlayer,
   getActivePlayerIds,
   getActivePlayerCount,
-  getBalloons, // New KV function for balloons
-  setBalloons, // New KV function for balloons
-  clearBalloons, // New KV function for balloons
-  getGameSettings, // New KV function for game settings
-  setGameSettings, // New KV function for game settings
-  initializeDefaultGameSettings, // New KV function for game settings
-  type GameSettings, // Import GameSettings type
-} from './kvStore'; // Import KV store functions
+  getBalloons,
+  setBalloons,
+  clearBalloons,
+  getGameSettings,
+  setGameSettings,
+  initializeDefaultGameSettings,
+} from './kvStore';
 
-// Level bounds constants
-const LEVEL_WIDTH = 1000;
-const LEVEL_HEIGHT = 600;
-const HALF_W = LEVEL_WIDTH / 2;
-const HALF_H = LEVEL_HEIGHT / 2;
+// Define all game constants in one place
+const gameConstants: GameConstants = {
+  LEVEL_WIDTH: 1000,
+  LEVEL_HEIGHT: 600,
+  get HALF_W() {
+    return this.LEVEL_WIDTH / 2;
+  }, // Use getter for derived constants
+  get HALF_H() {
+    return this.LEVEL_HEIGHT / 2;
+  },
+  PLAYER_RADIUS_PX: 20,
+  AIM_OFFSET_PX_CONST: 38,
+  MAX_JUMPS_CONST: 2,
+  get PLAYER_RADIUS_RATIO_X() {
+    return this.PLAYER_RADIUS_PX / this.HALF_W;
+  },
+  get PLAYER_RADIUS_RATIO_Y() {
+    return this.PLAYER_RADIUS_PX / this.HALF_H;
+  },
+  POINTS_TO_WIN: 10,
+  get MAX_RATIO_X() {
+    return 1 - this.PLAYER_RADIUS_PX / this.HALF_W;
+  },
+  get MAX_RATIO_Y() {
+    return 1 - this.PLAYER_RADIUS_PX / this.HALF_H;
+  },
+  GRAVITY: 10,
+  JUMP_VELOCITY: -1.5,
+  THROW_SPEED: 2,
+  DEAD_ZONE: 0.1,
+  MAX_CHARGE_TIME: 1000,
+  MAX_WETNESS: 100,
+  WETNESS_PER_HIT: 15,
+  PLAYER_DRYING_RATE_CONST: 5,
+  TERMINAL_VELOCITY_CONST: 2.5,
+  UMBRELLA_HORIZONTAL_SPEED_MULTIPLIER: 0.85,
+  UMBRELLA_DEFAULT_ANGLE: -Math.PI / 2,
+  get UMBRELLA_WIDTH_RATIO() {
+    return (this.PLAYER_RADIUS_PX * 2.5) / this.HALF_W;
+  },
+  get UMBRELLA_HEIGHT_RATIO() {
+    return (this.PLAYER_RADIUS_PX * 0.5) / this.HALF_H;
+  },
+  get UMBRELLA_OFFSET_Y_RATIO() {
+    return (this.PLAYER_RADIUS_PX + 5) / this.HALF_H;
+  },
+  get UMBRELLA_TERMINAL_VELOCITY() {
+    return this.TERMINAL_VELOCITY_CONST * 0.7;
+  },
+  UMBRELLA_MAX_REACH_MULTIPLIER: 3.0,
+  get BASE_UMBRELLA_DISTANCE_RATIO() {
+    return this.UMBRELLA_OFFSET_Y_RATIO;
+  },
+  UMBRELLA_GRAVITY_MULTIPLIER: 0.5,
+  PLAYER_HEIGHT_RATIO: 0.1, // This was 0.1, ensure it's relative to player model if changed
+  MOVE_SPEED: 350, // Base move speed in px/s, will need to be converted to ratio units/sec in logic
+  JUMP_MULTIPLIER: 3,
+  BALLOON_RADIUS_PX: 8,
+  get BALLOON_RADIUS_RATIO() {
+    return this.BALLOON_RADIUS_PX / this.HALF_W;
+  },
+  get COLLISION_RADIUS() {
+    return this.PLAYER_RADIUS_RATIO_X;
+  }, // Example, might be PLAYER_RADIUS_PX / HALF_W
+};
 
-// Player drawing constants (server uses normalized ratios)
-const PLAYER_RADIUS_PX = 20; // Renamed to avoid conflict if PLAYER_RADIUS is used elsewhere for ratio
-const AIM_OFFSET_PX_CONST = 38; // Match client's AIM_OFFSET for aim circle
-const MAX_JUMPS_CONST = 2; // Renamed to avoid conflict
+const FIXED_DELTA_TIME = 1 / 60; // Added for physics updates
 
-// Player radius in ratio coordinates
-const PLAYER_RADIUS_RATIO_X = PLAYER_RADIUS_PX / HALF_W;
-const PLAYER_RADIUS_RATIO_Y = PLAYER_RADIUS_PX / HALF_H;
-
-// New constant for game logic
-const POINTS_TO_WIN = 10; // Example: Points needed to win a game
-
-// Level bounds half-dimensions
-const MAX_RATIO_X = 1 - PLAYER_RADIUS_PX / HALF_W;
-const MAX_RATIO_Y = 1 - PLAYER_RADIUS_PX / HALF_H;
-
-// Physics constants
-const GRAVITY = 10; // ratio units per second² downward
-const JUMP_VELOCITY = -1.5; // ratio units per second upward
-const THROW_SPEED = 2; // ratio units per second for balloon velocity
-const DEAD_ZONE = 0.1; // minimal aim threshold
-const MAX_CHARGE_TIME = 1000; // ms to reach full throw power
-const MAX_WETNESS = 100;
-const WETNESS_PER_HIT = 15; // Increased from 10 to 15
-const PLAYER_DRYING_RATE_CONST = 5; // Renamed
-const TERMINAL_VELOCITY_CONST = 2.5; // Base terminal velocity
-
-// Umbrella constants
-const UMBRELLA_HORIZONTAL_SPEED_MULTIPLIER = 0.85; // New: 15% slower
-const UMBRELLA_DEFAULT_ANGLE = -Math.PI / 2; // Pointing upwards
-const UMBRELLA_WIDTH_RATIO = (PLAYER_RADIUS_PX * 2.5) / HALF_W; // Umbrella is wider than player
-const UMBRELLA_HEIGHT_RATIO = (PLAYER_RADIUS_PX * 0.5) / HALF_H; // For collision, a flat-ish rectangle
-const UMBRELLA_OFFSET_Y_RATIO = (PLAYER_RADIUS_PX + 5) / HALF_H; // Base offset above the player's center
-const UMBRELLA_TERMINAL_VELOCITY = TERMINAL_VELOCITY_CONST * 0.7; // Slower terminal velocity with umbrella
-const UMBRELLA_MAX_REACH_MULTIPLIER = 3.0; // New: Max reach multiplier
-const BASE_UMBRELLA_DISTANCE_RATIO = UMBRELLA_OFFSET_Y_RATIO; // New: Clarity for base offset
-const UMBRELLA_GRAVITY_MULTIPLIER = 0.5; // Restored constant for umbrella gravity multiplier
-
-// Missing physics and collision constants
-const PLAYER_HEIGHT_RATIO = 0.1; // Ratio for player height offset
-const MOVE_SPEED = 350; // Base move speed in px/s
-const JUMP_MULTIPLIER = 3; // Multiplier for jump velocity
-const BALLOON_RADIUS_PX = 8; // Balloon radius in pixels
-const BALLOON_RADIUS_RATIO = BALLOON_RADIUS_PX / HALF_W; // Convert balloon radius to ratio units
-const COLLISION_RADIUS = PLAYER_RADIUS_PX / HALF_W; // Collision radius in ratio units
-
-export interface TeamInfo {
-  hex: string;
-  name: string;
-  cssColor: string;
-}
-
-const TEAM_INFO: TeamInfo[] = [
+// Team Info (remains as is, but ensure type consistency)
+const TEAM_INFO: TeamInfoType[] = [
   { hex: '#f00', name: 'Raging Reds', cssColor: 'red' },
   { hex: '#00f', name: 'Brave Blues', cssColor: 'blue' },
 ];
-
-// REMOVE: In-memory game state variables - these will be managed in KV via GameSettings
-// let nextTeam = 0;
-// let friendlyFireEnabled = false;
-// const teamScores = [0, 0];
-// let gameOver = false;
-// let winningTeam: number | null = null;
-
-// Persistent Stats
-interface PlayerPersistentStats {
-  playerName: string;
-  conversions: number;
-  deathsByConversion: number;
-  gamesWon: number;
-}
-// const playerPersistentStats = new Map<string, PlayerPersistentStats>(); // REMOVE: Replaced by KV store
-// const teamSessionWins = [0, 0]; // REMOVE: This will be part of GameSettings in KV
 
 // Initialize game settings from KV or set defaults
 (async () => {
@@ -125,7 +128,6 @@ interface PlayerPersistentStats {
     console.error('[SERVER LOG] Error initializing game settings:', error);
   }
 })();
-
 
 export interface Player {
   // Ensure this Player interface matches what's stored in KV
@@ -411,14 +413,18 @@ export function createServer(port: number): {
                       }
                     }
                     const teamIdx = targetTeamIdx;
-                    const { ratioX, ratioY } = randomFloorPosition();
+                    // Use gameConstants for randomFloorPosition
+                    const { ratioX, ratioY } =
+                      randomFloorPosition(gameConstants);
 
                     playerData = initializePlayer(
                       controllerId,
                       playerName,
                       teamIdx,
                       ratioX,
-                      ratioY
+                      ratioY,
+                      gameConstants, // Pass gameConstants
+                      TEAM_INFO[teamIdx].hex // Pass team color hex
                     );
                     await setPlayer(controllerId, playerData);
                     await addActivePlayer(controllerId);
@@ -486,13 +492,18 @@ export function createServer(port: number): {
                   for (const pId of allActivePlayerIdsForRestart) {
                     const p_orig = await getPlayer(pId);
                     if (p_orig) {
-                      const { ratioX, ratioY } = randomFloorPosition(); // Give new random positions
+                      // Use gameConstants for randomFloorPosition
+                      const { ratioX, ratioY } =
+                        randomFloorPosition(gameConstants);
                       const updatedPlayer = initializePlayer(
                         p_orig.id,
                         p_orig.playerName,
                         settingsToRestart.nextTeam % TEAM_INFO.length,
-                        ratioX, // Reset position
-                        ratioY // Reset position
+                        ratioX,
+                        ratioY,
+                        gameConstants, // Pass gameConstants
+                        TEAM_INFO[settingsToRestart.nextTeam % TEAM_INFO.length]
+                          .hex // Pass team color hex
                       );
                       await setPlayer(pId, updatedPlayer);
                       settingsToRestart.nextTeam =
@@ -509,9 +520,11 @@ export function createServer(port: number): {
                 case 'input':
                   const playerForInput = await getPlayer(msg.clientId);
                   if (playerForInput) {
-                    const p = playerForInput; // Already a mutable copy from JSON parse (if getPlayer returns plain object)
+                    const p = playerForInput as Player; // Assert type from KV
                     p.buttons = msg.buttons;
-                    const horizSpeed = MOVE_SPEED / HALF_W;
+                    // Use gameConstants for MOVE_SPEED and HALF_W
+                    const horizSpeed =
+                      gameConstants.MOVE_SPEED / gameConstants.HALF_W;
                     p.vx = msg.axes[0] * horizSpeed;
                     p.aimX = msg.axes[2] ?? 0;
                     p.aimY = msg.axes[3] ?? 0;
@@ -521,17 +534,19 @@ export function createServer(port: number): {
 
                     if (p.isUmbrellaOpen) {
                       if (
-                        Math.abs(p.aimX) < DEAD_ZONE &&
-                        Math.abs(p.aimY) < DEAD_ZONE
+                        Math.abs(p.aimX) < gameConstants.DEAD_ZONE && // Use gameConstants
+                        Math.abs(p.aimY) < gameConstants.DEAD_ZONE // Use gameConstants
                       ) {
-                        p.umbrellaAngle = UMBRELLA_DEFAULT_ANGLE;
+                        p.umbrellaAngle = gameConstants.UMBRELLA_DEFAULT_ANGLE; // Use gameConstants
                       } else {
                         p.umbrellaAngle = Math.atan2(p.aimY, p.aimX);
                       }
                     }
 
                     if (msg.buttons[1] && !p.prevJump && p.jumpsRemaining > 0) {
-                      p.vy = JUMP_VELOCITY * JUMP_MULTIPLIER;
+                      p.vy =
+                        gameConstants.JUMP_VELOCITY *
+                        gameConstants.JUMP_MULTIPLIER; // Use gameConstants
                       p.isGrounded = false;
                       p.jumpsRemaining--;
                     }
@@ -546,6 +561,8 @@ export function createServer(port: number): {
                       p.triggerStart = Date.now();
                     }
 
+                    let newBalloonsLaunchedThisFrame: GameObject[] = []; // To hold balloons launched in this input
+
                     if (
                       !rightTriggerPressed &&
                       p.prevTrigger &&
@@ -554,47 +571,131 @@ export function createServer(port: number): {
                     ) {
                       const now = Date.now();
                       const start = p.triggerStart ?? now;
-                      const hold = Math.min(now - start, MAX_CHARGE_TIME);
-                      const throwPower = hold / MAX_CHARGE_TIME;
+                      const hold = Math.min(
+                        now - start,
+                        gameConstants.MAX_CHARGE_TIME
+                      ); // Use gameConstants
+                      const throwPower = hold / gameConstants.MAX_CHARGE_TIME; // Use gameConstants
                       p.triggerStart = null;
                       const aimMagnitude = Math.sqrt(
                         p.aimX * p.aimX + p.aimY * p.aimY
                       );
-                      if (aimMagnitude > DEAD_ZONE) {
+                      if (aimMagnitude > gameConstants.DEAD_ZONE) {
+                        // Use gameConstants
                         const spawnOffsetX_ratio =
-                          p.aimX * (AIM_OFFSET_PX_CONST / HALF_W);
+                          p.aimX *
+                          (gameConstants.AIM_OFFSET_PX_CONST /
+                            gameConstants.HALF_W); // Use gameConstants
                         const spawnOffsetY_ratio =
-                          p.aimY * (AIM_OFFSET_PX_CONST / HALF_H);
+                          p.aimY *
+                          (gameConstants.AIM_OFFSET_PX_CONST /
+                            gameConstants.HALF_H); // Use gameConstants
                         const spawnX = p.ratioX + spawnOffsetX_ratio;
                         const spawnY = p.ratioY + spawnOffsetY_ratio;
                         const effectivePower = (0.5 + throwPower * 0.5) * 1.4;
-                        const baseSpeed = THROW_SPEED * effectivePower;
+                        const baseSpeed =
+                          gameConstants.THROW_SPEED * effectivePower; // Use gameConstants
 
-                        // Get current balloons from KV, add new one, set them back
-                        let currentBalloons = await getBalloons();
-                        currentBalloons.push({
+                        // Instead of pushing to KV directly, add to a temporary array
+                        newBalloonsLaunchedThisFrame.push({
                           id: `${msg.clientId}-${now}`,
                           x: spawnX,
                           y: spawnY,
-                          vx: p.vx + p.aimX * baseSpeed,
-                          vy: p.vy + p.aimY * baseSpeed,
-                          radius: BALLOON_RADIUS_RATIO,
+                          vx: p.vx + p.aimX * baseSpeed, // Add player's current velocity to balloon
+                          vy: p.vy + p.aimY * baseSpeed, // Add player's current velocity to balloon
+                          radius: gameConstants.BALLOON_RADIUS_RATIO, // Use gameConstants
                           ownerId: msg.clientId,
                           team: p.team,
-                          teamColor: p.wetnessColor, // This should ideally be TEAM_INFO[p.team].hex
+                          teamColor: TEAM_INFO[p.team].hex, // Use correct team color
                           power: throwPower,
                         });
-                        await setBalloons(currentBalloons);
+                        // await setBalloons(currentBalloons); // Delay this
                       }
                     }
                     p.prevTrigger = rightTriggerPressed;
-                    await setPlayer(msg.clientId, p); // Save updated player state to KV
-                    // Physics update for this player would happen here or be triggered
-                    // For now, only direct input effects are saved.
-                    // Consider if a broadcast is needed immediately on input or batched.
-                    // For responsive feel, important state changes (like throwing) might warrant a broadcast.
-                    // However, frequent broadcasts can be heavy.
-                    // Let's assume the main physics loop (to be designed) will handle regular broadcasts.
+                    // await setPlayer(msg.clientId, p); // Delay this until after physics update
+
+                    // 1. Call updateSinglePlayerPhysics for the acting player.
+                    const updatedPlayer = updateSinglePlayerPhysics(
+                      p,
+                      FIXED_DELTA_TIME,
+                      gameConstants
+                    );
+
+                    // 2. Save the updated acting player to KV.
+                    await setPlayer(msg.clientId, updatedPlayer);
+
+                    // 3. Fetch all active players, all current balloons, current game settings, and all persistent stats from KV.
+                    const activePlayerIds = await getActivePlayerIds();
+                    let allActivePlayers = (
+                      await Promise.all(
+                        activePlayerIds.map((id) => getPlayer(id))
+                      )
+                    ).filter((pl) => pl !== null) as Player[];
+
+                    // Ensure the 'updatedPlayer' is the version used in 'allActivePlayers'
+                    const playerIndex = allActivePlayers.findIndex(
+                      (pl) => pl.id === updatedPlayer.id
+                    );
+                    if (playerIndex !== -1) {
+                      allActivePlayers[playerIndex] = updatedPlayer;
+                    } else {
+                      // This case should ideally not happen if the player is active, but as a safeguard:
+                      allActivePlayers.push(updatedPlayer);
+                    }
+
+                    let currentBalloons = await getBalloons();
+                    currentBalloons.push(...newBalloonsLaunchedThisFrame); // Add newly launched balloons
+
+                    let currentGameSettings = await getGameSettings();
+                    if (!currentGameSettings) {
+                      console.warn(
+                        '[SERVER LOG] Input: Game settings not found, re-initializing.'
+                      );
+                      currentGameSettings = await initializeDefaultGameSettings(
+                        TEAM_INFO.map((t) => t.name)
+                      );
+                    }
+
+                    let allPersistentStats = await getAllPlayerStats();
+                    const persistentStatsMap = new Map<
+                      string,
+                      PlayerPersistentStats
+                    >();
+                    allPersistentStats.forEach((stat) =>
+                      persistentStatsMap.set(stat.playerName, stat)
+                    );
+
+                    // 4. Call updateBalloons with all balloons.
+                    const updatedBalloons = updateBalloons(
+                      currentBalloons,
+                      FIXED_DELTA_TIME,
+                      gameConstants
+                    );
+
+                    // 5. Call handleCollisions
+                    const collisionResults = handleCollisions(
+                      allActivePlayers,
+                      updatedBalloons,
+                      currentGameSettings,
+                      persistentStatsMap, // Pass the map
+                      gameConstants,
+                      TEAM_INFO
+                    );
+
+                    // 6. Save all modified states from the collision results back to KV.
+                    for (const playerToSave of collisionResults.updatedPlayers) {
+                      await setPlayer(playerToSave.id, playerToSave);
+                    }
+                    await setBalloons(collisionResults.updatedBalloons);
+                    await setGameSettings(collisionResults.updatedGameSettings);
+                    for (const statsToSave of collisionResults.updatedPersistentStats.values()) {
+                      // Iterate over map values
+                      await setPlayerStats(statsToSave.playerName, statsToSave);
+                    }
+
+                    // 7. Call broadcastGameState.
+                    await broadcastGameState();
                   }
                   break;
 
@@ -782,7 +883,7 @@ async function broadcastGameState() {
     const activePlayerIds = await getActivePlayerIds();
     const playersData = (
       await Promise.all(activePlayerIds.map((id) => getPlayer(id)))
-    ).filter((p) => p !== null) as Player[];
+    ).filter((p) => p !== null) as Player[]; // Assert Player[] type
 
     const currentBalloons = await getBalloons(); // Fetch balloons from KV
     let currentGameSettings = await getGameSettings();
@@ -804,11 +905,11 @@ async function broadcastGameState() {
       players: playersData,
       balloons: currentBalloons,
       teamScores: currentGameSettings.teamScores,
-      friendlyFireEnabled: currentGameSettings.friendlyFireEnabled,
+      friendlyFireEnabled: currentGameSettings.friendlyFireEnabled, // This comes from GameSettings in KV
       gameOver: currentGameSettings.gameOver,
       winningTeam: currentGameSettings.winningTeam,
       persistentPlayerStats: persistentPlayerStatsArray,
-      teamSessionWins: currentGameSettings.teamSessionWins,
+      teamSessionWins: currentGameSettings.teamSessionWins, // This comes from GameSettings in KV
       teamNames: TEAM_INFO.map((t) => t.name),
       tilemap: null, // Tilemap is explicitly null
     };
