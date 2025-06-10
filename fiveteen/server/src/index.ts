@@ -658,14 +658,6 @@ export function createServer(port: number): {
                     }
 
                     let allPersistentStats = await getAllPlayerStats();
-                    const persistentStatsMap = new Map<
-                      string,
-                      PlayerPersistentStats
-                    >();
-                    allPersistentStats.forEach((stat) =>
-                      persistentStatsMap.set(stat.playerName, stat)
-                    );
-
                     // 4. Call updateBalloons with all balloons.
                     const updatedBalloons = updateBalloons(
                       currentBalloons,
@@ -678,7 +670,7 @@ export function createServer(port: number): {
                       allActivePlayers,
                       updatedBalloons,
                       currentGameSettings,
-                      persistentStatsMap, // Pass the map
+                      allPersistentStats, // Pass array of stats
                       gameConstants,
                       TEAM_INFO
                     );
@@ -689,8 +681,7 @@ export function createServer(port: number): {
                     }
                     await setBalloons(collisionResults.updatedBalloons);
                     await setGameSettings(collisionResults.updatedGameSettings);
-                    for (const statsToSave of collisionResults.updatedPersistentStats.values()) {
-                      // Iterate over map values
+                    for (const statsToSave of collisionResults.updatedStats) {
                       await setPlayerStats(statsToSave.playerName, statsToSave);
                     }
 
