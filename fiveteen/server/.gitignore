@@ -1,0 +1,31 @@
+.vercel
+
+# Node modules
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Environment files
+.env
+
+# Coverage reports
+coverage/
+
+# OS files
+.DS_Store
+
+# VS Code workspace settings
+.vscode/
+
+# Redis dump (if using local Redis)
+dump.rdb
+
+# Editor directories and files
+.idea/

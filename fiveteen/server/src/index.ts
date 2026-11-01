@@ -17,10 +17,10 @@ import {
   handleCollisions,
 } from './functions/index';
 import {
-  kv, // Import the kv client
+  // kv, // Removed kv import
   getPlayer,
   setPlayer,
-  deletePlayer,
+  deletePlayer, // This was not used but kept for consistency if needed later
   getPlayerStats,
   setPlayerStats,
   getAllPlayerStats,
@@ -34,6 +34,8 @@ import {
   getGameSettings,
   setGameSettings,
   initializeDefaultGameSettings,
+  // Added disconnectRedis for potential graceful shutdown
+  disconnectRedis,
 } from './kvStore';
 
 // Define all game constants in one place
@@ -68,8 +70,8 @@ const gameConstants: GameConstants = {
   DEAD_ZONE: 0.1,
   MAX_CHARGE_TIME: 1000,
   MAX_WETNESS: 100,
-  WETNESS_PER_HIT: 15,
-  PLAYER_DRYING_RATE_CONST: 5,
+  WETNESS_PER_HIT: 25, // Changed from 10 to 25
+  PLAYER_DRYING_RATE_CONST: 10, // Changed from 1 to 10
   TERMINAL_VELOCITY_CONST: 2.5,
   UMBRELLA_HORIZONTAL_SPEED_MULTIPLIER: 0.85,
   UMBRELLA_DEFAULT_ANGLE: -Math.PI / 2,
@@ -85,12 +87,9 @@ const gameConstants: GameConstants = {
   get UMBRELLA_TERMINAL_VELOCITY() {
     return this.TERMINAL_VELOCITY_CONST * 0.7;
   },
-  UMBRELLA_MAX_REACH_MULTIPLIER: 3.0,
-  get BASE_UMBRELLA_DISTANCE_RATIO() {
-    return this.UMBRELLA_OFFSET_Y_RATIO;
-  },
   UMBRELLA_GRAVITY_MULTIPLIER: 0.5,
   PLAYER_HEIGHT_RATIO: 0.1, // This was 0.1, ensure it's relative to player model if changed
+  BASE_MOVE_SPEED: 200, // Added missing property
   MOVE_SPEED: 350, // Base move speed in px/s, will need to be converted to ratio units/sec in logic
   JUMP_MULTIPLIER: 3,
   BALLOON_RADIUS_PX: 8,
@@ -100,14 +99,18 @@ const gameConstants: GameConstants = {
   get COLLISION_RADIUS() {
     return this.PLAYER_RADIUS_RATIO_X;
   }, // Example, might be PLAYER_RADIUS_PX / HALF_W
+  UMBRELLA_MAX_REACH_MULTIPLIER: 3.0, // Restored from constants/index.ts
+  BASE_UMBRELLA_DISTANCE_RATIO: 0.09, // Updated from constants/index.ts
+  UMBRELLA_SPREAD_ANGLE: Math.PI * 0.8, // Added from constants/index.ts
 };
 
 const FIXED_DELTA_TIME = 1 / 60; // Added for physics updates
+const GAME_TICK_MS = 16; // Target ~60 FPS game loop
 
 // Team Info (remains as is, but ensure type consistency)
 const TEAM_INFO: TeamInfoType[] = [
-  { hex: '#f00', name: 'Raging Reds', cssColor: 'red' },
-  { hex: '#00f', name: 'Brave Blues', cssColor: 'blue' },
+  { id: 0, hexColor: '#f00', name: 'Raging Reds', cssColor: 'red' }, // Changed hex to hexColor, added id
+  { id: 1, hexColor: '#00f', name: 'Brave Blues', cssColor: 'blue' }, // Changed hex to hexColor, added id
 ];
 
 // Initialize game settings from KV or set defaults
@@ -120,7 +123,7 @@ const TEAM_INFO: TeamInfoType[] = [
       );
       // Pass team names for array sizing if needed by initializeDefaultGameSettings
       settings = await initializeDefaultGameSettings(
-        TEAM_INFO.map((t) => t.name)
+        TEAM_INFO.map((t: TeamInfoType) => t.name) // Corrected type
       );
     }
     // console.log('[SERVER LOG] Game settings loaded/initialized:', settings);
@@ -129,55 +132,20 @@ const TEAM_INFO: TeamInfoType[] = [
   }
 })();
 
-export interface Player {
-  // Ensure this Player interface matches what's stored in KV
-  id: string;
-  playerName: string;
-  ratioX: number;
-  ratioY: number;
-  vx: number;
-  vy: number;
-  aimX: number;
-  aimY: number;
-  score: number;
-  team: number; // team index
-  wetnessLevel: number;
-  wetnessColor: string; // Hex color string for wetness visual
-  isGrounded: boolean;
-  prevJump: boolean;
-  jumpsRemaining: number;
-  prevTrigger: boolean; // For throwing balloons (right trigger)
-  triggerStart: number | null;
-  buttons: boolean[]; // Ensure this is part of the interface
-  isUmbrellaOpen: boolean; // Added for umbrella state
-  umbrellaAngle: number; // Added for umbrella angle
-}
-
-export interface GameObject {
-  id: string;
-  x: number; // ratioX
-  y: number; // ratioY
-  vx: number;
-  vy: number;
-  radius: number; // collision/visual size in ratio units
-  ownerId: string; // id of throwing player
-  team: number; // team index of owner
-  power: number; // throw charge ratio [0,1]
-  teamColor: string; // color for rendering balloon
-}
-
-// Removed local GameState interface; using types.GameState instead
-
 type MsgInit = { type: 'init'; clientId: string; playerName: string }; // Updated: Added playerName
 type MsgInput = {
   type: 'input';
   clientId: string;
-  axes: number[];
-  buttons: boolean[];
+  input: {
+    // Added nested input object
+    axes: number[];
+    buttons: boolean[];
+  };
+  deltaTime: number; // Added: time since client's last input processing cycle, in seconds
 };
-type MsgPing = { type: 'ping' };
-type MsgLevel = { type: 'level'; levelId: string };
-type MsgDisconnect = { type: 'disconnect'; clientId: string };
+type MsgPing = { type: 'ping' }
+type MsgLevel = { type: 'level'; levelId: string }
+type MsgDisconnect = { type: 'disconnect'; clientId: string }
 type MsgRestartGame = { type: 'restart_game' }; // New message type for restarting the game
 type IncomingMessage = MsgInit | MsgInput | MsgPing | MsgLevel | MsgRestartGame; // Added MsgRestartGame
 // support explicit disconnect messages
@@ -337,7 +305,7 @@ export function createServer(port: number): {
               // console.log(
               //   `[SERVER LOG] Message handler: Successfully parsed message type: ${msg.type}`
               // );
-              processedAsJson = true; // Mark that we've handled it as JSON
+              processedAsJson = true; // Mark that we\\\'ve handled it as JSON
 
               const checkedCurrentControllerClientIds =
                 clientAssociatedControllerIds.get(ws)!;
@@ -375,7 +343,8 @@ export function createServer(port: number): {
                     // await setPlayer(controllerId, playerData);
                   } else {
                     // New player
-                    let persistentStats = await getPlayerStats(playerName);
+                    let persistentStats: PlayerPersistentStats | null =
+                      await getPlayerStats(playerName); // Added type
                     if (!persistentStats) {
                       persistentStats = {
                         playerName: playerName,
@@ -390,9 +359,9 @@ export function createServer(port: number): {
                     const activePlayerIds = await getActivePlayerIds();
                     const activePlayersData = (
                       await Promise.all(
-                        activePlayerIds.map((id) => getPlayer(id))
+                        activePlayerIds.map((id: string) => getPlayer(id)) // Added type for id
                       )
-                    ).filter((p) => p !== null) as Player[];
+                    ).filter((p: Player | null) => p !== null) as Player[]; // Added type for p
 
                     const teamCounts = new Array(TEAM_INFO.length).fill(0);
                     for (const p of activePlayersData) {
@@ -424,7 +393,7 @@ export function createServer(port: number): {
                       ratioX,
                       ratioY,
                       gameConstants, // Pass gameConstants
-                      TEAM_INFO[teamIdx].hex // Pass team color hex
+                      TEAM_INFO[teamIdx].hexColor // Pass team color hexColor
                     );
                     await setPlayer(controllerId, playerData);
                     await addActivePlayer(controllerId);
@@ -433,47 +402,50 @@ export function createServer(port: number): {
                     );
                   }
 
-                  const currentActivePlayerCount = await getActivePlayerCount();
-                  let gameSettings = await getGameSettings();
-                  if (!gameSettings) {
-                    // Should be initialized by IIFE, but as a fallback
-                    console.warn(
-                      '[SERVER LOG] Game settings not found during init, re-initializing.'
-                    );
-                    gameSettings = await initializeDefaultGameSettings(
-                      TEAM_INFO.map((t) => t.name)
-                    );
-                  }
+                  // const currentActivePlayerCount = await getActivePlayerCount(); // This line is no longer needed here
+                  // let gameSettings = await getGameSettings(); // This line is no longer needed here
+                  // if (!gameSettings) {
+                  // // Should be initialized by IIFE, but as a fallback
+                  // console.warn(
+                  //   '[SERVER LOG] Game settings not found during init, re-initializing.'
+                  // );
+                  // gameSettings = await initializeDefaultGameSettings(
+                  //   TEAM_INFO.map((t) => t.name)
+                  // );
+                  // }
 
-                  if (
-                    currentActivePlayerCount === 1 &&
-                    gameSettings &&
-                    gameSettings.gameOver
-                  ) {
-                    console.log(
-                      '[SERVER LOG] First player joined a game over state. Resetting game settings in KV.'
-                    );
-                    gameSettings.gameOver = false;
-                    gameSettings.winningTeam = null;
-                    gameSettings.teamScores = new Array(TEAM_INFO.length).fill(
-                      0
-                    );
-                    // gameSettings.nextTeam = 0; // nextTeam is for restart team assignment, not necessarily reset here
-                    await setGameSettings(gameSettings);
-                    await clearBalloons(); // Also clear balloons for a fresh game
-                  }
+                  // REMOVED: Automatic game reset when first player joins a gameOver state.
+                  // The game should remain in its current state (gameOver or not)
+                  // until an explicit 'restart_game' message is received.
+                  // if (
+                  //   currentActivePlayerCount === 1 &&
+                  //   gameSettings &&
+                  //   gameSettings.gameOver
+                  // ) {
+                  //   console.log(
+                  //     '[SERVER LOG] First player joined a game over state. Resetting game settings in KV.'
+                  //   );
+                  //   gameSettings.gameOver = false;
+                  //   gameSettings.winningTeam = null;
+                  //   gameSettings.teamScores = new Array(TEAM_INFO.length).fill(
+                  //     0
+                  //   );
+                  //   await setGameSettings(gameSettings);
+                  //   await clearBalloons();
+                  // }
                   await broadcastGameState(); // Broadcast initial state
                   break;
 
                 case 'restart_game':
                   console.log('[SERVER LOG] RESTART_GAME message received.');
-                  let settingsToRestart = await getGameSettings();
+                  let settingsToRestart: GameSettings | null =
+                    await getGameSettings(); // Added type
                   if (!settingsToRestart) {
                     console.warn(
                       '[SERVER LOG] Game settings not found during restart, initializing.'
                     );
                     settingsToRestart = await initializeDefaultGameSettings(
-                      TEAM_INFO.map((t) => t.name)
+                      TEAM_INFO.map((t: TeamInfoType) => t.name) // Added type for t
                     );
                   } else {
                     settingsToRestart.gameOver = false;
@@ -503,7 +475,7 @@ export function createServer(port: number): {
                         ratioY,
                         gameConstants, // Pass gameConstants
                         TEAM_INFO[settingsToRestart.nextTeam % TEAM_INFO.length]
-                          .hex // Pass team color hex
+                          .hexColor // Pass team color hexColor
                       );
                       await setPlayer(pId, updatedPlayer);
                       settingsToRestart.nextTeam =
@@ -518,176 +490,49 @@ export function createServer(port: number): {
                   break;
 
                 case 'input':
+                  // console.log(
+                  //   `[SERVER LOG] INPUT message for clientId: ${msg.clientId}`
+                  // );
                   const playerForInput = await getPlayer(msg.clientId);
                   if (playerForInput) {
-                    const p = playerForInput as Player; // Assert type from KV
-                    p.buttons = msg.buttons;
-                    // Use gameConstants for MOVE_SPEED and HALF_W
-                    const horizSpeed =
-                      gameConstants.MOVE_SPEED / gameConstants.HALF_W;
-                    p.vx = msg.axes[0] * horizSpeed;
-                    p.aimX = msg.axes[2] ?? 0;
-                    p.aimY = msg.axes[3] ?? 0;
+                    // console.log(
+                    //   `[SERVER LOG] INPUT: Player ${playerForInput.playerName} found. Storing input state.`
+                    // );
 
-                    const leftTriggerPressed = p.buttons[6];
-                    p.isUmbrellaOpen = leftTriggerPressed;
+                    const receivedButtons = msg.input.buttons;
+                    const receivedAxes = msg.input.axes;
+                    // const clientDeltaTime = msg.deltaTime; // No longer used here
 
-                    if (p.isUmbrellaOpen) {
-                      if (
-                        Math.abs(p.aimX) < gameConstants.DEAD_ZONE && // Use gameConstants
-                        Math.abs(p.aimY) < gameConstants.DEAD_ZONE // Use gameConstants
-                      ) {
-                        p.umbrellaAngle = gameConstants.UMBRELLA_DEFAULT_ANGLE; // Use gameConstants
-                      } else {
-                        p.umbrellaAngle = Math.atan2(p.aimY, p.aimX);
-                      }
-                    }
+                    // console.log(
+                    //   `[SERVER LOG] Received input message for clientId: ${msg.clientId} with deltaTime: ${clientDeltaTime}`
+                    // );
+                    // console.log(
+                    //   `[SERVER LOG] Buttons: ${JSON.stringify(
+                    //     receivedButtons
+                    //   )}, Axes: ${JSON.stringify(receivedAxes)}`
+                    // );
 
-                    if (msg.buttons[1] && !p.prevJump && p.jumpsRemaining > 0) {
-                      p.vy =
-                        gameConstants.JUMP_VELOCITY *
-                        gameConstants.JUMP_MULTIPLIER; // Use gameConstants
-                      p.isGrounded = false;
-                      p.jumpsRemaining--;
-                    }
-                    p.prevJump = msg.buttons[1];
+                    // Store the latest input state on the player object
+                    playerForInput.buttons = receivedButtons;
+                    playerForInput.axes = receivedAxes; // Store all axes
+                    playerForInput.aimX = receivedAxes[2] ?? 0; // Keep aimX/Y for direct access if needed elsewhere
+                    playerForInput.aimY = receivedAxes[3] ?? 0;
 
-                    const rightTriggerPressed = p.buttons[7];
-                    if (
-                      rightTriggerPressed &&
-                      !p.prevTrigger &&
-                      !p.isUmbrellaOpen
-                    ) {
-                      p.triggerStart = Date.now();
-                    }
+                    // Update the player in KV store with the new input state
+                    await setPlayer(msg.clientId, playerForInput);
 
-                    let newBalloonsLaunchedThisFrame: GameObject[] = []; // To hold balloons launched in this input
+                    // console.log(
+                    //   `[SERVER LOG] Player ${playerForInput.playerName} (ID: ${msg.clientId}) input state updated in KV.`
+                    // );
 
-                    if (
-                      !rightTriggerPressed &&
-                      p.prevTrigger &&
-                      p.triggerStart &&
-                      !p.isUmbrellaOpen
-                    ) {
-                      const now = Date.now();
-                      const start = p.triggerStart ?? now;
-                      const hold = Math.min(
-                        now - start,
-                        gameConstants.MAX_CHARGE_TIME
-                      ); // Use gameConstants
-                      const throwPower = hold / gameConstants.MAX_CHARGE_TIME; // Use gameConstants
-                      p.triggerStart = null;
-                      const aimMagnitude = Math.sqrt(
-                        p.aimX * p.aimX + p.aimY * p.aimY
-                      );
-                      if (aimMagnitude > gameConstants.DEAD_ZONE) {
-                        // Use gameConstants
-                        const spawnOffsetX_ratio =
-                          p.aimX *
-                          (gameConstants.AIM_OFFSET_PX_CONST /
-                            gameConstants.HALF_W); // Use gameConstants
-                        const spawnOffsetY_ratio =
-                          p.aimY *
-                          (gameConstants.AIM_OFFSET_PX_CONST /
-                            gameConstants.HALF_H); // Use gameConstants
-                        const spawnX = p.ratioX + spawnOffsetX_ratio;
-                        const spawnY = p.ratioY + spawnOffsetY_ratio;
-                        const effectivePower = (0.5 + throwPower * 0.5) * 1.4;
-                        const baseSpeed =
-                          gameConstants.THROW_SPEED * effectivePower; // Use gameConstants
-
-                        // Instead of pushing to KV directly, add to a temporary array
-                        newBalloonsLaunchedThisFrame.push({
-                          id: `${msg.clientId}-${now}`,
-                          x: spawnX,
-                          y: spawnY,
-                          vx: p.vx + p.aimX * baseSpeed, // Add player's current velocity to balloon
-                          vy: p.vy + p.aimY * baseSpeed, // Add player's current velocity to balloon
-                          radius: gameConstants.BALLOON_RADIUS_RATIO, // Use gameConstants
-                          ownerId: msg.clientId,
-                          team: p.team,
-                          teamColor: TEAM_INFO[p.team].hex, // Use correct team color
-                          power: throwPower,
-                        });
-                        // await setBalloons(currentBalloons); // Delay this
-                      }
-                    }
-                    p.prevTrigger = rightTriggerPressed;
-                    // await setPlayer(msg.clientId, p); // Delay this until after physics update
-
-                    // 1. Call updateSinglePlayerPhysics for the acting player.
-                    const updatedPlayer = updateSinglePlayerPhysics(
-                      p,
-                      FIXED_DELTA_TIME,
-                      gameConstants
+                    // Physics update and balloon launching are now handled by the gameLoop
+                    // No direct call to updateSinglePlayerPhysics or balloon management here.
+                  } else {
+                    console.log(
+                      `[SERVER LOG] ERROR: Player with clientId ${msg.clientId} not found during input processing.`
                     );
-
-                    // 2. Save the updated acting player to KV.
-                    await setPlayer(msg.clientId, updatedPlayer);
-
-                    // 3. Fetch all active players, all current balloons, current game settings, and all persistent stats from KV.
-                    const activePlayerIds = await getActivePlayerIds();
-                    let allActivePlayers = (
-                      await Promise.all(
-                        activePlayerIds.map((id) => getPlayer(id))
-                      )
-                    ).filter((pl) => pl !== null) as Player[];
-
-                    // Ensure the 'updatedPlayer' is the version used in 'allActivePlayers'
-                    const playerIndex = allActivePlayers.findIndex(
-                      (pl) => pl.id === updatedPlayer.id
-                    );
-                    if (playerIndex !== -1) {
-                      allActivePlayers[playerIndex] = updatedPlayer;
-                    } else {
-                      // This case should ideally not happen if the player is active, but as a safeguard:
-                      allActivePlayers.push(updatedPlayer);
-                    }
-
-                    let currentBalloons = await getBalloons();
-                    currentBalloons.push(...newBalloonsLaunchedThisFrame); // Add newly launched balloons
-
-                    let currentGameSettings = await getGameSettings();
-                    if (!currentGameSettings) {
-                      console.warn(
-                        '[SERVER LOG] Input: Game settings not found, re-initializing.'
-                      );
-                      currentGameSettings = await initializeDefaultGameSettings(
-                        TEAM_INFO.map((t) => t.name)
-                      );
-                    }
-
-                    let allPersistentStats = await getAllPlayerStats();
-                    // 4. Call updateBalloons with all balloons.
-                    const updatedBalloons = updateBalloons(
-                      currentBalloons,
-                      FIXED_DELTA_TIME,
-                      gameConstants
-                    );
-
-                    // 5. Call handleCollisions
-                    const collisionResults = handleCollisions(
-                      allActivePlayers,
-                      updatedBalloons,
-                      currentGameSettings,
-                      allPersistentStats, // Pass array of stats
-                      gameConstants,
-                      TEAM_INFO
-                    );
-
-                    // 6. Save all modified states from the collision results back to KV.
-                    for (const playerToSave of collisionResults.updatedPlayers) {
-                      await setPlayer(playerToSave.id, playerToSave);
-                    }
-                    await setBalloons(collisionResults.updatedBalloons);
-                    await setGameSettings(collisionResults.updatedGameSettings);
-                    for (const statsToSave of collisionResults.updatedStats) {
-                      await setPlayerStats(statsToSave.playerName, statsToSave);
-                    }
-
-                    // 7. Call broadcastGameState.
-                    await broadcastGameState();
                   }
+                  // Do not broadcast game state here; gameLoop will do it at a fixed rate.
                   break;
 
                 case 'disconnect':
@@ -708,17 +553,17 @@ export function createServer(port: number): {
 
                 default:
                   const unhandledMsg: any = msg;
-                // console.log(
-                //   `[SERVER LOG] Message handler: Unknown or unhandled message type: ${unhandledMsg.type}`
-                // );
+                  console.log(
+                    `[SERVER LOG] Message handler: Unknown or unhandled message type: ${unhandledMsg.type}`
+                  );
               }
             } catch (parseError) {
-              // console.error(
-              //   '[SERVER LOG] Message handler: Error parsing message JSON:',
-              //   parseError,
-              //   'Original string data (first 500 chars):',
-              //   messageString.substring(0, 500)
-              // );
+              console.error(
+                '[SERVER LOG] Message handler: Error parsing message JSON:',
+                parseError,
+                'Original string data (first 500 chars):',
+                messageString.substring(0, 500)
+              );
               // If parsing fails, do not attempt to forward as binary, as it was intended to be JSON.
             }
           }
@@ -763,7 +608,7 @@ export function createServer(port: number): {
         const controllerIdsSet = clientAssociatedControllerIds.get(ws);
 
         console.log(
-          `[SERVER LOG] Close handler: Connection closed. Code: ${code}, Reason: "${reasonString}". Primary ID: ${
+          `[SERVER LOG] Close handler: Connection closed. Code: ${code}, Reason: \\"${reasonString}\\". Primary ID: ${
             primaryId || 'N/A'
           }. Associated controller IDs: ${
             controllerIdsSet ? Array.from(controllerIdsSet).join(', ') : 'N/A'
@@ -773,7 +618,7 @@ export function createServer(port: number): {
         if (controllerIdsSet) {
           for (const controllerId of controllerIdsSet) {
             // Use for...of for async operations
-            const playerWhoLeft = await getPlayer(controllerId); // Get player from KV
+            const playerWhoLeft: Player | null = await getPlayer(controllerId); // Get player from KV, added type
             if (playerWhoLeft) {
               console.log(
                 `[SERVER LOG] Player ${playerWhoLeft.playerName} (ID: ${controllerId}) disconnecting. Code: ${code}, Reason: "${reasonString}". Removing from active set.`
@@ -809,7 +654,7 @@ export function createServer(port: number): {
           console.log(
             '[SERVER LOG] All players disconnected. Resetting game session variables (scores, game over state) in KV.'
           );
-          let settingsOnClose = await getGameSettings();
+          let settingsOnClose: GameSettings | null = await getGameSettings(); // Added type
           if (settingsOnClose) {
             settingsOnClose.teamScores = new Array(TEAM_INFO.length).fill(0);
             settingsOnClose.gameOver = false;
@@ -826,7 +671,9 @@ export function createServer(port: number): {
               '[SERVER LOG] Could not find game settings to reset on close.'
             );
             // Fallback: try to initialize if somehow they were never set
-            await initializeDefaultGameSettings(TEAM_INFO.map((t) => t.name));
+            await initializeDefaultGameSettings(
+              TEAM_INFO.map((t: TeamInfoType) => t.name)
+            ); // Added type for t
             await clearBalloons();
           }
         }
@@ -873,24 +720,26 @@ async function broadcastGameState() {
   try {
     const activePlayerIds = await getActivePlayerIds();
     const playersData = (
-      await Promise.all(activePlayerIds.map((id) => getPlayer(id)))
-    ).filter((p) => p !== null) as Player[]; // Assert Player[] type
+      await Promise.all(activePlayerIds.map((id: string) => getPlayer(id)))
+    ) // Added type for id
+      .filter((p: Player | null) => p !== null) as Player[]; // Assert Player[] type, Added type for p
 
-    const currentBalloons = await getBalloons(); // Fetch balloons from KV
-    let currentGameSettings = await getGameSettings();
+    const currentBalloons: GameObject[] = await getBalloons(); // Fetch balloons from KV, Added type
+    let currentGameSettings: GameSettings | null = await getGameSettings(); // Added type
 
     if (!currentGameSettings) {
       console.warn(
         '[SERVER LOG] Game settings not found in broadcastGameState, attempting to initialize.'
       );
       currentGameSettings = await initializeDefaultGameSettings(
-        TEAM_INFO.map((t) => t.name)
+        TEAM_INFO.map((t: TeamInfoType) => t.name) // Changed type for t to TeamInfoType
       );
       // No need to save here, initializeDefaultGameSettings does that.
       // This is a fallback; settings should ideally always exist.
     }
 
-    const persistentPlayerStatsArray = await getAllPlayerStats();
+    const persistentPlayerStatsArray: PlayerPersistentStats[] =
+      await getAllPlayerStats(); // Added type
 
     const gameState: types.GameState = {
       players: playersData,
@@ -909,6 +758,9 @@ async function broadcastGameState() {
     if (wssInstance) {
       wssInstance.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
+          console.log(
+            `[SERVER LOG] Broadcasting game state with ${playersData.length} players and ${currentBalloons.length} balloons`
+          );
           client.send(JSON.stringify({ type: 'state', state: gameState }));
         }
       });
@@ -922,33 +774,176 @@ async function broadcastGameState() {
   }
 }
 
-// Get port from environment variable or default to 8080
-// const port = parseInt(process.env.PORT || '8080', 10);
+// Global variable to hold the server instance, primarily for WSS access in broadcastGameState
+let serverInstance: { server: http.Server; wss: WebSocketServer } | null = null;
 
-// Create and start the server
-// const { server, wss } = createServer(port); // wss is now part of serverInstance
+// Main function to create and start the server
+function main() {
+  const port = parseInt(process.env.PORT || '3001', 10);
+  serverInstance = createServer(port); // Assign to global instance
 
-// The createServer function, as previously modified, will use
-// process.env.PORT if available, or the port provided here as a fallback.
-const portForServer = parseInt(process.env.PORT || '8080', 10); // Default port for local execution if process.env.PORT is not set
-const serverInstance = createServer(portForServer); // Capture the instance { server, wss }
+  serverInstance.server.listen(port, () => {
+    console.log(`[SERVER LOG] Server listening on port ${port}`);
+    gameLoop(); // Start the game loop
+  });
 
-// server.listen(port, () => { // This is handled by the default export for Vercel
-//   // console.log(`[SERVER LOG] Server listening on port ${port}`);
-// });
-
-// Handle process termination to clean up the interval
-process.on('SIGINT', () => {
-  console.log('SIGINT signal received: closing HTTP server');
-  // if (gameLoopInterval) clearInterval(gameLoopInterval); // REMOVE: gameLoopInterval removed
-  if (serverInstance && serverInstance.server) {
-    serverInstance.server.close(() => {
-      console.log('HTTP server closed');
+  // Graceful shutdown
+  process.on('SIGINT', async () => {
+    console.log('[SERVER LOG] SIGINT received, shutting down gracefully...');
+    if (serverInstance) {
+      serverInstance.wss.clients.forEach((client) => client.close());
+      serverInstance.server.close(async () => {
+        console.log('[SERVER LOG] HTTP server closed.');
+        await disconnectRedis(); // Disconnect Redis client
+        process.exit(0);
+      });
+    } else {
+      await disconnectRedis(); // Disconnect Redis client
       process.exit(0);
-    });
-  } else {
-    process.exit(0); // Exit if serverInstance wasn't fully set up
-  }
-});
+    }
+  });
 
-export default serverInstance.server; // Export the http.Server instance for Vercel
+  process.on('SIGTERM', async () => {
+    console.log('[SERVER LOG] SIGTERM received, shutting down gracefully...');
+    if (serverInstance) {
+      serverInstance.wss.clients.forEach((client) => client.close());
+      serverInstance.server.close(async () => {
+        console.log('[SERVER LOG] HTTP server closed.');
+        await disconnectRedis(); // Disconnect Redis client
+        process.exit(0);
+      });
+    } else {
+      await disconnectRedis(); // Disconnect Redis client
+      process.exit(0);
+    }
+  });
+}
+
+// Ensure the server starts when the script is executed
+// This replaces the Vercel-specific default export.
+if (require.main === module) {
+  main();
+}
+
+// Export createServer for potential programmatic use if needed,
+// but the primary execution path is now through main().
+// For Vercel, the default export is usually an http.Server instance or a request handler.
+// Since we are moving to Docker, we control the server startup.
+// export default serverInstance?.server; // This might not be needed or work as expected outside Vercel.
+// Consider removing if not specifically required for some deployment target.
+
+// If you need to export the server for a specific framework or entry point, adjust accordingly.
+// For a simple Node.js Docker deployment, running main() is sufficient.
+
+async function gameLoop() {
+  const startTime = Date.now();
+  // console.log('[SERVER LOG] Game loop iteration started.');
+
+  try {
+    let gameSettings = await getGameSettings();
+
+    if (gameSettings && !gameSettings.gameOver) {
+      // Main game logic only if game is active
+      const activePlayerIds = await getActivePlayerIds();
+      let playersForLoop = (
+        await Promise.all(activePlayerIds.map((id: string) => getPlayer(id)))
+      ).filter((p: Player | null) => p !== null) as Player[];
+
+      let balloonsForLoop = (await getBalloons()) || []; // Ensure it's an array
+
+      const allNewBalloonsThisLoop: GameObject[] = [];
+      const updatedPlayersThisLoop: Player[] = [];
+
+      // Update individual player physics for all active players
+      for (const currentPlayer of playersForLoop) {
+        const playerSpecificNewBalloons: GameObject[] = [];
+        // For the game loop\'s continuous physics update:
+        // - Use currentPlayer.buttons (last state from input handler)
+        // - Use currentPlayer.axes (last state from input handler for movement and aim)
+
+        const updatedPlayer = updateSinglePlayerPhysics(
+          currentPlayer,
+          currentPlayer.buttons, // Buttons from last input
+          currentPlayer.axes, // Axes from last input (includes movement and aim)
+          FIXED_DELTA_TIME, // Use fixed delta time for server game loop
+          gameConstants,
+          playerSpecificNewBalloons
+        );
+        updatedPlayersThisLoop.push(updatedPlayer);
+        allNewBalloonsThisLoop.push(...playerSpecificNewBalloons);
+      }
+
+      // Persist updated player states to KV store
+      if (updatedPlayersThisLoop.length > 0) {
+        await Promise.all(
+          updatedPlayersThisLoop.map((p) => setPlayer(p.id, p))
+        );
+      }
+      // Use the players that were just updated for subsequent logic in this loop iteration
+      playersForLoop = updatedPlayersThisLoop;
+
+      // Add any balloons launched during player physics updates to the main list
+      if (allNewBalloonsThisLoop.length > 0) {
+        balloonsForLoop = balloonsForLoop.concat(allNewBalloonsThisLoop);
+      }
+
+      // Update balloon physics (movement, etc.)
+      // updateBalloons is expected to be synchronous and return the modified list.
+      balloonsForLoop = updateBalloons(
+        balloonsForLoop,
+        FIXED_DELTA_TIME,
+        gameConstants
+      );
+      await setBalloons(balloonsForLoop); // Persist updated balloons
+
+      // Handle collisions and game rules, then persist results
+      const collisionResult = await handleCollisions(
+        playersForLoop,
+        balloonsForLoop,
+        gameSettings,
+        await getAllPlayerStats(),
+        gameConstants,
+        TEAM_INFO
+      );
+      // Persist updated players
+      await Promise.all(
+        collisionResult.updatedPlayers.map((p) => setPlayer(p.id, p))
+      );
+      // Persist updated balloons
+      await setBalloons(collisionResult.updatedBalloons);
+      // Persist updated game settings
+      await setGameSettings(collisionResult.updatedGameSettings);
+      // Persist updated persistent stats
+      await Promise.all(
+        collisionResult.updatedStats.map((s) => setPlayerStats(s.playerName, s))
+      );
+      // collisionResult.gameSettings has been persisted, broadcastGameState will fetch latest from KV.
+    } else if (!gameSettings) {
+      console.warn(
+        '[SERVER LOG] Game loop: Game settings not found. Game logic skipped.'
+      );
+      // Attempt to initialize settings if they are missing, as a fallback
+      await initializeDefaultGameSettings(
+        TEAM_INFO.map((t: TeamInfoType) => t.name)
+      );
+    } else {
+      // Game is over, logic is skipped.
+      // console.log('[SERVER LOG] Game loop: Game is over. Game logic skipped.');
+    }
+  } catch (error) {
+    console.error('[SERVER LOG] Error in game loop:', error);
+  } finally {
+    // Ensure broadcastGameState is called even if there were errors in the try block,
+    // unless the error is catastrophic and prevents broadcasting.
+    // console.log('[SERVER LOG] Game loop: Attempting to broadcast game state in finally block.');
+    await broadcastGameState(); // Call broadcastGameState at the end of each iteration
+
+    const endTime = Date.now();
+    const elapsedTime = endTime - startTime;
+    const nextTickDelay = Math.max(0, GAME_TICK_MS - elapsedTime);
+    // console.log(
+    //   `[SERVER LOG] Game loop iteration finished. Elapsed time: ${elapsedTime}ms. Next tick in: ${nextTickDelay}ms.`
+    // );
+    setTimeout(gameLoop, nextTickDelay);
+  }
+}

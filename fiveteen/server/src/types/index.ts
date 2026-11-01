@@ -9,6 +9,7 @@ export interface Player {
   aimY: number;
   score: number;
   team: number;
+  teamColor: string; // Base color for the player's team, used for balloon color
   wetnessLevel: number;
   wetnessColor: string;
   isGrounded: boolean;
@@ -16,7 +17,8 @@ export interface Player {
   jumpsRemaining: number;
   prevTrigger: boolean;
   triggerStart: number | null;
-  buttons: boolean[];
+  buttons: boolean[]; // Button pressed states
+  axes: number[]; // Axes input state
   isUmbrellaOpen: boolean;
   umbrellaAngle: number;
 }
@@ -64,9 +66,9 @@ export interface PlayerPersistentStats {
 }
 
 export interface TeamInfo {
-  // Added TeamInfo interface
-  hex: string;
+  id: number; // Added to match player.team and usage
   name: string;
+  hexColor: string; // Changed from hex for consistency
   cssColor: string;
 }
 
@@ -102,14 +104,9 @@ export interface GameConstants {
   TERMINAL_VELOCITY_CONST: number;
   UMBRELLA_HORIZONTAL_SPEED_MULTIPLIER: number;
   UMBRELLA_DEFAULT_ANGLE: number;
-  UMBRELLA_WIDTH_RATIO: number;
-  UMBRELLA_HEIGHT_RATIO: number;
-  UMBRELLA_OFFSET_Y_RATIO: number;
-  UMBRELLA_TERMINAL_VELOCITY: number;
   UMBRELLA_MAX_REACH_MULTIPLIER: number;
+  BASE_MOVE_SPEED: number;
   BASE_UMBRELLA_DISTANCE_RATIO: number;
-  UMBRELLA_GRAVITY_MULTIPLIER: number;
-  PLAYER_HEIGHT_RATIO: number;
   MOVE_SPEED: number;
   JUMP_MULTIPLIER: number;
   BALLOON_RADIUS_PX: number;
@@ -118,4 +115,11 @@ export interface GameConstants {
   MAX_JUMPS_CONST: number;
   POINTS_TO_WIN: number;
   AIM_OFFSET_PX_CONST: number;
+  PLAYER_HEIGHT_RATIO: number; // Added missing property
+  UMBRELLA_TERMINAL_VELOCITY: number; // Added missing property
+  UMBRELLA_GRAVITY_MULTIPLIER: number; // Added missing property
+  UMBRELLA_WIDTH_RATIO: number; // Added missing property
+  UMBRELLA_HEIGHT_RATIO: number; // Added missing property
+  UMBRELLA_OFFSET_Y_RATIO?: number; // Added missing property
+  UMBRELLA_SPREAD_ANGLE: number; // Added for umbrella collision detection
 }

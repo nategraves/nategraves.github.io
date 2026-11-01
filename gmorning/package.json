@@ -1,0 +1,19 @@
+{
+  "name": "gmorning",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "esbuild script.ts --bundle --outfile=dist/script.js --platform=browser --format=esm --sourcemap",
+    "dev": "esbuild script.ts --bundle --outfile=dist/script.js --platform=browser --format=esm --watch --sourcemap",
+    "start": "yarn build && node start-live-server.js",
+    "postinstall": "sed -i '' -e 's/\\r$//' node_modules/live-server/bin/live-server.js",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "typescript": "^4.9.5",
+    "live-server": "^1.2.1",
+    "prettier": "^2.8.0",
+    "esbuild": "^0.17.19"
+  },
+  "type": "module"
+}

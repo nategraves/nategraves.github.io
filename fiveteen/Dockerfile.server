@@ -1,0 +1,28 @@
+# Use an official Node.js runtime as a parent image
+FROM node:18-alpine
+
+# Set the working directory in the container
+WORKDIR /usr/src/app
+
+# Copy package.json and package-lock.json (if available)
+# Assuming these are in the fiveteen/server directory
+COPY server/package.json ./
+COPY server/package-lock.json ./
+
+# Install app dependencies
+RUN npm ci --only=production
+
+# Bundle app source
+# Copy the entire server directory relative to the build context (fiveteen/)
+COPY server/ ./
+
+# Build the TypeScript code
+RUN npm run build
+
+USER node
+
+# Your app binds to port 3001 (or process.env.PORT)
+EXPOSE 3001
+
+# Define the command to run your app
+CMD ["npm", "start"]

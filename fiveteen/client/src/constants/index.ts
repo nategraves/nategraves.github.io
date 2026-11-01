@@ -14,6 +14,5 @@ export const UMBRELLA_HANDLE_THICKNESS_PX = PLAYER_RADIUS * 0.1;
 export const BASE_UMBRELLA_OFFSET_Y_PX = PLAYER_RADIUS + 5;
 export const UMBRELLA_MAX_REACH_MULTIPLIER_CLIENT = 3.0;
 export const PLAYER_NAME_FONT = "12px sans-serif";
-export const PLAYER_NAME_OFFSET_Y = 5;
+export const PLAYER_NAME_OFFSET_Y = 25; // Offset in px below player avatar
 export const TEAM_DISPLAY_NAMES = ["Team 1", "Team 2"];
-export const TEAM_HEX_COLORS = ["#f00", "#00f"];

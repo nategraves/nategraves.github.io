@@ -1,0 +1,28 @@
+# Use a Node.js base image
+FROM node:18-alpine AS builder
+
+# Set working directory for the build stage
+WORKDIR /usr/src/app
+
+# Copy package.json and package-lock.json from the root of the build context
+COPY package.json package-lock.json* ./ 
+# Install all dependencies, including devDependencies like esbuild
+RUN npm install 
+# Copy the rest of the application code from the root of the build context
+COPY . .
+RUN npm run build
+
+# Stage 2: Serve the built static files using Nginx
+FROM nginx:alpine
+
+# Copy the built static assets from the builder stage
+COPY --from=builder /usr/src/app/dist /usr/share/nginx/html/dist
+# Copy static HTML and CSS files from the src directory of the build context
+COPY src/index.html /usr/share/nginx/html/index.html
+COPY src/style.css /usr/share/nginx/html/style.css
+
+# Expose port 80 for Nginx
+EXPOSE 80
+
+# Start Nginx when the container launches
+CMD ["nginx", "-g", "daemon off;"]

@@ -1,0 +1,37 @@
+# Use a Node.js base image
+FROM node:18-alpine AS builder
+
+# Set working directory for the build stage
+WORKDIR /usr/src/app
+
+# Copy package.json and package-lock.json (or npm-shrinkwrap.json)
+COPY package.json package-lock.json*
+
+# Install dependencies
+RUN npm install --omit=dev # Install only production dependencies if build doesn't need devDeps
+# If your build script (esbuild) needs devDependencies, remove --omit=dev
+# Or, for a multi-stage build, you might install all deps here, then copy only necessary to final stage
+
+# Copy the rest of the client application code
+COPY . .
+
+# Run the build script defined in package.json
+RUN npm run build
+
+# Debugging step: List contents of the entire build context
+RUN echo "Debugging build context" && ls -la
+
+# Stage 2: Serve the built static files using Nginx
+FROM nginx:alpine
+
+# Copy the built static files from the builder stage
+COPY --from=builder /usr/src/app/dist /usr/share/nginx/html/dist
+# Copy index.html and style.css from src to the correct location for Nginx
+COPY src/index.html /usr/share/nginx/html/index.html
+COPY src/style.css /usr/share/nginx/html/style.css
+
+# Expose port 80 for Nginx
+EXPOSE 80
+
+# Start Nginx when the container launches
+CMD ["nginx", "-g", "daemon off;"]
